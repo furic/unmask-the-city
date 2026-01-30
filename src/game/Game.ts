@@ -154,17 +154,17 @@ export class Game {
     // Minimap
     this.minimap = new Minimap(this.fogOfWar, this.settings.citySize);
 
-    // City
-    this.city = new City(this.scene, this.settings.citySize, this.fogOfWar, this.settings.buildingDensity);
+    // Water system (create BEFORE city so buildings can avoid water)
+    this.water = new Water(this.scene, this.settings.citySize);
+
+    // City (pass water so it can avoid placing buildings in water)
+    this.city = new City(this.scene, this.settings.citySize, this.fogOfWar, this.settings.buildingDensity, this.water);
 
     // Fog Particles (reduced count for performance)
     this.fogParticles = new FogParticles(this.scene, this.settings.citySize, 200);
 
     // Rain
     this.rain = new Rain(this.scene, this.settings.citySize, 2000);
-
-    // Water system
-    this.water = new Water(this.scene, this.settings.citySize);
 
     // Guards
     const guardCount = this.difficulty === 'easy' ? 3 : this.difficulty === 'hard' ? 7 : 5;

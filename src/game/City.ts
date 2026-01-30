@@ -71,12 +71,14 @@ export class City {
   private streetLightPoleMaterial: THREE.MeshStandardMaterial;
   private streetLightBulbMaterial: THREE.MeshBasicMaterial;
   private buildingDensity: number;
+  private water: any; // Water instance for checking water areas
 
-  constructor(scene: THREE.Scene, size: number, fogOfWar: FogOfWar, buildingDensity = 0.7) {
+  constructor(scene: THREE.Scene, size: number, fogOfWar: FogOfWar, buildingDensity = 0.7, water?: any) {
     this.scene = scene;
     this.size = size;
     this.fogOfWar = fogOfWar;
     this.buildingDensity = buildingDensity;
+    this.water = water;
 
     // Create building material with fog of war support
     this.buildingMaterial = new THREE.MeshStandardMaterial({
@@ -298,6 +300,11 @@ export class City {
 
         // Skip park areas
         if (this.isInPark(new THREE.Vector3(x, 0, z))) {
+          continue;
+        }
+
+        // Skip water areas
+        if (this.water && this.water.isInWater(new THREE.Vector3(x, 0, z))) {
           continue;
         }
 
