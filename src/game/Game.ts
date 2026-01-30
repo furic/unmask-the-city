@@ -15,6 +15,7 @@ import { AudioManager } from './AudioManager';
 import { HighScoreManager } from './HighScoreManager';
 import { GlobalLeaderboardManager } from './GlobalLeaderboardManager';
 import { Rain } from './Rain';
+import { WinSequence } from './WinSequence';
 
 // Difficulty settings interface
 export interface DifficultySettings {
@@ -91,6 +92,10 @@ export class Game {
   private weatherTimer = 0;
   private isRaining = false;
 
+  // Win sequence
+  private winSequence!: WinSequence;
+  private winSequenceTriggered = false;
+
   // Settings
   private settings: DifficultySettings;
   private difficulty: string;
@@ -160,6 +165,18 @@ export class Game {
     this.spawnCollectibles();
     this.setupPostProcessing();
     this.setupEventListeners();
+
+    // Win sequence (after lighting is set up)
+    this.winSequence = new WinSequence(
+      this.renderer,
+      this.scene,
+      this.camera,
+      this.fogOfWar,
+      this.audioManager,
+      this.sunLight,
+      this.ambientLight,
+      this.settings.citySize
+    );
 
     // Initial render
     this.composer.render();
@@ -359,6 +376,7 @@ export class Game {
     // Reset game state
     this.gameTime = 0;
     this.fragmentsCollected = 0;
+    this.winSequenceTriggered = false;
     this.fogOfWar.reset();
     this.city.regenerate();
     this.spawnCollectibles();
@@ -459,9 +477,13 @@ export class Game {
     this.audioManager.setFragmentProximity(nearestFragmentDist);
 
     // Check win condition
-    if (this.fragmentsCollected >= this.totalFragments) {
-      this.onWin();
+    if (this.fragmentsCollected >= this.totalFragments && !this.winSequenceTriggered) {
+      this.winSequenceTriggered = true;
+      this.triggerWinSequence(playerPos);
     }
+
+    // Update win sequence
+    this.winSequence.update(delta);
 
     // Render with post-processing
     this.composer.render();
@@ -494,6 +516,16 @@ export class Game {
     this.audioManager.playCollect();
 
     console.log(`${collectible.fragmentType} fragment collected! (+${collectible.points} pts) ${this.fragmentsCollected}/${this.totalFragments}`);
+  }
+
+  private triggerWinSequence(playerPos: THREE.Vector3): void {
+    // Screen shake on final fragment
+    this.triggerScreenShake(1.5, 0.5);
+
+    // Start the win sequence animation
+    this.winSequence.play(playerPos, () => {
+      this.onWin();
+    });
   }
 
   private onWin(): void {

@@ -122,7 +122,7 @@ export class Minimap {
 
     ctx.save();
     ctx.translate(px, py);
-    ctx.rotate(playerRotation + Math.PI); // Flip 180° to correct up/down direction
+    ctx.rotate(-playerRotation); // Match player facing direction
 
     // Draw player arrow
     ctx.fillStyle = '#ffffff';
