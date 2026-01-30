@@ -257,20 +257,75 @@
         justify-content: center;
         z-index: 100;
       }
-      
+
       #win-screen h1 {
-        font-size: 36px;
+        font-size: 42px;
         margin-bottom: 30px;
         color: #4ade80;
+        animation: winTitle 0.6s ease-out;
+        text-shadow: 0 0 30px rgba(74, 222, 128, 0.5);
       }
-      
+
+      @keyframes winTitle {
+        0% { opacity: 0; transform: scale(0.5); }
+        50% { transform: scale(1.1); }
+        100% { opacity: 1; transform: scale(1); }
+      }
+
       #win-screen .stats {
-        font-size: 20px;
-        line-height: 2;
+        font-size: 22px;
+        line-height: 2.2;
         margin-bottom: 40px;
         text-align: center;
       }
-      
+
+      #win-screen .stats > div {
+        opacity: 0;
+        transform: translateY(20px);
+        animation: statReveal 0.5s ease-out forwards;
+      }
+
+      #win-screen .stats > div:nth-child(1) { animation-delay: 0.3s; }
+      #win-screen .stats > div:nth-child(2) { animation-delay: 0.5s; }
+      #win-screen .stats > div:nth-child(3) { animation-delay: 0.7s; }
+
+      @keyframes statReveal {
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      #win-screen .stat-value {
+        color: #4ade80;
+        font-weight: 700;
+        font-size: 28px;
+        display: inline-block;
+        min-width: 80px;
+      }
+
+      #win-screen .stat-label {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 16px;
+        margin-left: 10px;
+      }
+
+      #final-score {
+        font-size: 32px !important;
+        margin-top: 15px;
+        padding: 10px 20px;
+        background: rgba(74, 222, 128, 0.15);
+        border-radius: 8px;
+        border: 2px solid rgba(74, 222, 128, 0.3);
+      }
+
+      #final-score .stat-value {
+        font-size: 36px;
+        animation: scoreGlow 1.5s ease-in-out infinite alternate;
+      }
+
+      @keyframes scoreGlow {
+        from { text-shadow: 0 0 10px rgba(74, 222, 128, 0.5); }
+        to { text-shadow: 0 0 25px rgba(74, 222, 128, 0.9); }
+      }
+
       #win-screen button {
         padding: 15px 40px;
         font-size: 16px;
@@ -280,11 +335,19 @@
         border-radius: 8px;
         cursor: pointer;
         font-weight: 600;
-        transition: transform 0.2s;
+        transition: transform 0.2s, box-shadow 0.2s;
+        opacity: 0;
+        animation: buttonReveal 0.5s ease-out 1s forwards;
+        box-shadow: 0 0 20px rgba(74, 222, 128, 0.3);
       }
-      
+
+      @keyframes buttonReveal {
+        to { opacity: 1; }
+      }
+
       #win-screen button:hover {
         transform: scale(1.05);
+        box-shadow: 0 0 30px rgba(74, 222, 128, 0.6);
       }
       
       .hidden {
@@ -502,9 +565,9 @@
       <div id="win-screen">
         <h1>City Unmasked!</h1>
         <div class="stats">
-          <div id="final-time">Time: 00:00</div>
-          <div id="final-explored">Explored: 0%</div>
-          <div id="final-score">Score: 0</div>
+          <div id="final-time"><span class="stat-value">00:00</span><span class="stat-label">Time</span></div>
+          <div id="final-explored"><span class="stat-value">0%</span><span class="stat-label">Explored</span></div>
+          <div id="final-score"><span class="stat-value">0</span><span class="stat-label">Score</span></div>
         </div>
         <button id="play-again">Play Again</button>
       </div>

@@ -15,6 +15,8 @@ import { AudioManager } from './AudioManager';
 import { HighScoreManager } from './HighScoreManager';
 import { GlobalLeaderboardManager } from './GlobalLeaderboardManager';
 import { Rain } from './Rain';
+import { Water } from './Water';
+import { Guard } from './Guard';
 import { WinSequence } from './WinSequence';
 
 // Difficulty settings interface
@@ -93,6 +95,10 @@ export class Game {
   private weatherTimer = 0;
   private isRaining = false;
 
+  // Water and Guards
+  private water: Water;
+  private guards: Guard;
+
   // Win sequence
   private winSequence!: WinSequence;
   private winSequenceTriggered = false;
@@ -156,6 +162,13 @@ export class Game {
 
     // Rain
     this.rain = new Rain(this.scene, this.settings.citySize, 2000);
+
+    // Water system
+    this.water = new Water(this.scene, this.settings.citySize);
+
+    // Guards
+    const guardCount = this.difficulty === 'easy' ? 3 : this.difficulty === 'hard' ? 7 : 5;
+    this.guards = new Guard(this.scene, this.settings.citySize, guardCount);
 
     // Audio
     this.audioManager = new AudioManager();
@@ -432,6 +445,18 @@ export class Game {
     // Update fog particles
     this.fogParticles.update(delta, playerPos);
 
+    // Update water
+    this.water.update(delta);
+    const inWater = this.water.isInWater(playerPos);
+    this.player.setInWater(inWater);
+
+    // Update guards
+    this.guards.update(delta, playerPos);
+    const guardAlert = this.guards.getAlertLevel();
+    if (guardAlert > 0.3) {
+      this.player.drainStamina(guardAlert * 20 * delta);
+    }
+
     // Update weather (rain)
     this.weatherTimer += delta;
     if (this.weatherTimer > 60) { // Check weather every 60 seconds
@@ -535,6 +560,10 @@ export class Game {
     // Screen shake on final fragment
     this.triggerScreenShake(1.5, 0.5);
 
+    // Pass fragment positions to win sequence for beam effects
+    const fragmentPositions = this.collectibles.map(c => c.getPosition());
+    this.winSequence.setFragmentPositions(fragmentPositions);
+
     // Start the win sequence animation
     this.winSequence.play(playerPos, () => {
       this.onWin();
@@ -573,13 +602,14 @@ export class Game {
       })
       .catch(err => console.error('Global submit failed:', err));
 
-    // Update win screen
-    document.getElementById('final-time')!.textContent =
-      `Time: ${this.formatTime(this.gameTime)}`;
-    document.getElementById('final-explored')!.textContent =
-      `Explored: ${explored.toFixed(1)}%`;
-    document.getElementById('final-score')!.textContent =
-      `Score: ${Math.max(0, score)}`;
+    // Update win screen with animated stat values
+    const timeEl = document.querySelector('#final-time .stat-value');
+    const exploredEl = document.querySelector('#final-explored .stat-value');
+    const scoreEl = document.querySelector('#final-score .stat-value');
+
+    if (timeEl) timeEl.textContent = this.formatTime(this.gameTime);
+    if (exploredEl) exploredEl.textContent = `${explored.toFixed(1)}%`;
+    if (scoreEl) scoreEl.textContent = String(Math.max(0, score));
 
     document.getElementById('win-screen')!.style.display = 'flex';
   }

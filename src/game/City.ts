@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { FogOfWar } from './FogOfWar';
 
-type BuildingType = 'box' | 'cylinder' | 'pyramid';
+type BuildingType = 'box' | 'cylinder' | 'pyramid' | 'lshaped';
 
 interface Building {
   position: THREE.Vector3;
@@ -11,6 +11,10 @@ interface Building {
   type: BuildingType;
   hasAntenna: boolean;
   hasWaterTower: boolean;
+  // For L-shaped buildings: wing dimensions
+  wingWidth?: number;
+  wingDepth?: number;
+  wingDirection?: number; // 0-3 for which corner the wing extends
 }
 
 interface Park {
@@ -57,7 +61,10 @@ export class City {
   private streetLightBulbMeshes: THREE.InstancedMesh | null = null;
   private streetLights3D: THREE.PointLight[] = [];
   private neonSignMeshes: THREE.Mesh[] = [];
+  private lshapedWingMeshes: THREE.InstancedMesh | null = null;
   private landmarkTower: THREE.Group | null = null;
+  private landmarkPyramid: THREE.Mesh | null = null;
+  private landmarkDome: THREE.Mesh | null = null;
   private buildingMaterial: THREE.MeshStandardMaterial;
   private treeTrunkMaterial: THREE.MeshStandardMaterial;
   private treeCrownMaterial: THREE.MeshStandardMaterial;
@@ -245,7 +252,7 @@ export class City {
     this.streetLights = [];
     this.neonSigns = [];
     const halfSize = this.size / 2;
-    const gridSize = 20; // Space between potential building spots
+    const gridSize = 25; // Space between potential building spots (increased to prevent overlap)
     const buildingChance = this.buildingDensity;
 
     // Clear spawn area
@@ -315,6 +322,9 @@ export class City {
         } else if (normalizedDist > 0.6 && Math.random() < 0.15) {
           // Outer areas: some pyramids
           type = 'pyramid';
+        } else if (normalizedDist > 0.3 && normalizedDist < 0.7 && Math.random() < 0.12) {
+          // Mid-range: L-shaped buildings
+          type = 'lshaped';
         }
 
         // Building dimensions based on type
@@ -332,6 +342,14 @@ export class City {
         const hasAntenna = type === 'box' && height > 50 && Math.random() < 0.15;
         const hasWaterTower = type === 'box' && height > 30 && height < 60 && Math.random() < 0.1;
 
+        // L-shaped building wings
+        let wingWidth, wingDepth, wingDirection;
+        if (type === 'lshaped') {
+          wingWidth = width * (0.4 + Math.random() * 0.3);
+          wingDepth = depth * (0.5 + Math.random() * 0.3);
+          wingDirection = Math.floor(Math.random() * 4);
+        }
+
         this.buildings.push({
           position: new THREE.Vector3(x + offsetX, height / 2, z + offsetZ),
           width,
@@ -340,6 +358,9 @@ export class City {
           type,
           hasAntenna,
           hasWaterTower,
+          wingWidth,
+          wingDepth,
+          wingDirection,
         });
 
         // Add neon signs to some box buildings (10% chance for performance)
@@ -456,6 +477,13 @@ export class City {
     });
     this.neonSignMeshes = [];
 
+    // Remove L-shaped wings
+    if (this.lshapedWingMeshes) {
+      this.scene.remove(this.lshapedWingMeshes);
+      this.lshapedWingMeshes.geometry.dispose();
+      this.lshapedWingMeshes = null;
+    }
+
     // Remove landmark tower
     if (this.landmarkTower) {
       this.scene.remove(this.landmarkTower);
@@ -468,16 +496,33 @@ export class City {
       this.landmarkTower = null;
     }
 
+    // Remove landmark pyramid
+    if (this.landmarkPyramid) {
+      this.scene.remove(this.landmarkPyramid);
+      this.landmarkPyramid.geometry.dispose();
+      (this.landmarkPyramid.material as THREE.Material).dispose();
+      this.landmarkPyramid = null;
+    }
+
+    // Remove landmark dome
+    if (this.landmarkDome) {
+      this.scene.remove(this.landmarkDome);
+      this.landmarkDome.geometry.dispose();
+      (this.landmarkDome.material as THREE.Material).dispose();
+      this.landmarkDome = null;
+    }
+
     // Generate new city
     this.generate();
   }
 
   private createMeshes(): void {
     // Count buildings by type
-    // Pyramid buildings also need a box base, so include them in boxBuildings
-    const boxBuildings = this.buildings.filter((b) => b.type === 'box' || b.type === 'pyramid');
+    // Pyramid and L-shaped buildings also need a box base, so include them
+    const boxBuildings = this.buildings.filter((b) => b.type === 'box' || b.type === 'pyramid' || b.type === 'lshaped');
     const cylinderBuildings = this.buildings.filter((b) => b.type === 'cylinder');
     const pyramidBuildings = this.buildings.filter((b) => b.type === 'pyramid');
+    const lshapedBuildings = this.buildings.filter((b) => b.type === 'lshaped');
     const antennaBuildings = this.buildings.filter((b) => b.hasAntenna);
     const waterTowerBuildings = this.buildings.filter((b) => b.hasWaterTower);
 
@@ -636,6 +681,56 @@ export class City {
       this.waterTowerMeshes.instanceMatrix.needsUpdate = true;
       if (this.waterTowerMeshes.instanceColor) this.waterTowerMeshes.instanceColor.needsUpdate = true;
       this.scene.add(this.waterTowerMeshes);
+    }
+
+    // Create L-shaped building wings
+    if (lshapedBuildings.length > 0) {
+      const wingGeometry = new THREE.BoxGeometry(1, 1, 1);
+      this.lshapedWingMeshes = new THREE.InstancedMesh(
+        wingGeometry,
+        this.buildingMaterial,
+        lshapedBuildings.length
+      );
+      this.lshapedWingMeshes.castShadow = true;
+      this.lshapedWingMeshes.receiveShadow = true;
+
+      lshapedBuildings.forEach((building, i) => {
+        const wingW = building.wingWidth || building.width * 0.5;
+        const wingD = building.wingDepth || building.depth * 0.5;
+        const wingH = building.height * (0.6 + Math.random() * 0.3); // Slightly shorter wing
+
+        // Calculate wing position based on direction
+        let wingX = building.position.x;
+        let wingZ = building.position.z;
+        const dir = building.wingDirection || 0;
+
+        if (dir === 0) {
+          wingX += building.width / 2 + wingW / 2 - 1;
+          wingZ += building.depth / 2 - wingD / 2;
+        } else if (dir === 1) {
+          wingX -= building.width / 2 + wingW / 2 - 1;
+          wingZ += building.depth / 2 - wingD / 2;
+        } else if (dir === 2) {
+          wingX += building.width / 2 - wingW / 2;
+          wingZ -= building.depth / 2 + wingD / 2 - 1;
+        } else {
+          wingX -= building.width / 2 + wingW / 2 - 1;
+          wingZ -= building.depth / 2 + wingD / 2 - 1;
+        }
+
+        scaleMatrix.makeScale(wingW, wingH, wingD);
+        posMatrix.makeTranslation(wingX, wingH / 2, wingZ);
+        matrix.multiplyMatrices(posMatrix, scaleMatrix);
+        this.lshapedWingMeshes!.setMatrixAt(i, matrix);
+
+        const shade = 0.3 + Math.random() * 0.2;
+        color.setRGB(shade, shade, shade + 0.02);
+        this.lshapedWingMeshes!.setColorAt(i, color);
+      });
+
+      this.lshapedWingMeshes.instanceMatrix.needsUpdate = true;
+      if (this.lshapedWingMeshes.instanceColor) this.lshapedWingMeshes.instanceColor.needsUpdate = true;
+      this.scene.add(this.lshapedWingMeshes);
     }
 
     // Create park grounds
@@ -820,6 +915,34 @@ export class City {
     // Position the tower slightly offset from exact center (avoiding spawn point)
     this.landmarkTower.position.set(50, 0, 50);
     this.scene.add(this.landmarkTower);
+
+    // Create pyramid monument landmark (opposite corner)
+    const pyramidSize = 40;
+    const pyramidHeight = 60;
+    const pyramidGeom = new THREE.ConeGeometry(pyramidSize, pyramidHeight, 4);
+    const pyramidMat = new THREE.MeshStandardMaterial({
+      color: 0x8b7355,
+      roughness: 0.6,
+      metalness: 0.2,
+    });
+    this.landmarkPyramid = new THREE.Mesh(pyramidGeom, pyramidMat);
+    this.landmarkPyramid.position.set(-120, pyramidHeight / 2, -120);
+    this.landmarkPyramid.rotation.y = Math.PI / 4; // Rotate to align edges with grid
+    this.landmarkPyramid.castShadow = true;
+    this.scene.add(this.landmarkPyramid);
+
+    // Create dome landmark (planetarium/arena)
+    const domeRadius = 35;
+    const domeGeom = new THREE.SphereGeometry(domeRadius, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+    const domeMat = new THREE.MeshStandardMaterial({
+      color: 0x3a5a7a,
+      roughness: 0.3,
+      metalness: 0.7,
+    });
+    this.landmarkDome = new THREE.Mesh(domeGeom, domeMat);
+    this.landmarkDome.position.set(130, 0, -100);
+    this.landmarkDome.castShadow = true;
+    this.scene.add(this.landmarkDome);
   }
 
   isInsideBuilding(point: THREE.Vector3, padding = 2): boolean {
@@ -894,9 +1017,9 @@ export class City {
     const towerX = 50;
     const towerZ = 50;
     const towerRadius = 10 + radius;
-    const dx = position.x - towerX;
-    const dz = position.z - towerZ;
-    const distSq = dx * dx + dz * dz;
+    let dx = position.x - towerX;
+    let dz = position.z - towerZ;
+    let distSq = dx * dx + dz * dz;
     if (distSq < towerRadius * towerRadius) {
       const dist = Math.sqrt(distSq);
       const pushDist = towerRadius - dist;
@@ -906,6 +1029,32 @@ export class City {
         (dz / dist) * pushDist
       );
       return pushOut;
+    }
+
+    // Check pyramid monument collision (approximate as circle)
+    const pyramidX = -120;
+    const pyramidZ = -120;
+    const pyramidRadius = 42 + radius;
+    dx = position.x - pyramidX;
+    dz = position.z - pyramidZ;
+    distSq = dx * dx + dz * dz;
+    if (distSq < pyramidRadius * pyramidRadius) {
+      const dist = Math.sqrt(distSq);
+      const pushDist = pyramidRadius - dist;
+      return new THREE.Vector3((dx / dist) * pushDist, 0, (dz / dist) * pushDist);
+    }
+
+    // Check dome collision (circular)
+    const domeX = 130;
+    const domeZ = -100;
+    const domeRadius = 37 + radius;
+    dx = position.x - domeX;
+    dz = position.z - domeZ;
+    distSq = dx * dx + dz * dz;
+    if (distSq < domeRadius * domeRadius) {
+      const dist = Math.sqrt(distSq);
+      const pushDist = domeRadius - dist;
+      return new THREE.Vector3((dx / dist) * pushDist, 0, (dz / dist) * pushDist);
     }
 
     return null;

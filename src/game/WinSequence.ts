@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { FogOfWar } from './FogOfWar';
 import { AudioManager } from './AudioManager';
+import { FireworksSystem } from './Fireworks';
 
 export class WinSequence {
   private renderer: THREE.WebGLRenderer;
@@ -27,6 +28,17 @@ export class WinSequence {
   // Flash overlay
   private flashOverlay: HTMLDivElement | null = null;
 
+  // Fireworks
+  private fireworks: FireworksSystem;
+  private fireworksStarted = false;
+
+  // Fragment beams
+  private fragmentBeams: THREE.Mesh[] = [];
+  private fragmentPositions: THREE.Vector3[] = [];
+
+  // God rays overlay
+  private godRaysOverlay: HTMLDivElement | null = null;
+
   constructor(
     renderer: THREE.WebGLRenderer,
     scene: THREE.Scene,
@@ -51,7 +63,10 @@ export class WinSequence {
     this.originalSunIntensity = this.sunLight.intensity;
     this.originalAmbientIntensity = this.ambientLight.intensity;
 
+    this.fireworks = new FireworksSystem(scene);
+
     this.createFlashOverlay();
+    this.createGodRaysOverlay();
   }
 
   private createFlashOverlay(): void {
@@ -71,12 +86,34 @@ export class WinSequence {
     document.body.appendChild(this.flashOverlay);
   }
 
+  private createGodRaysOverlay(): void {
+    this.godRaysOverlay = document.createElement('div');
+    this.godRaysOverlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse at 50% 30%, rgba(255, 200, 100, 0.3) 0%, transparent 60%);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 999;
+      transition: opacity 0.5s ease-out;
+    `;
+    document.body.appendChild(this.godRaysOverlay);
+  }
+
+  setFragmentPositions(positions: THREE.Vector3[]): void {
+    this.fragmentPositions = positions;
+  }
+
   play(playerPos: THREE.Vector3, onComplete: () => void): void {
     this.isPlaying = true;
     this.sequenceTime = 0;
     this.playerPos.copy(playerPos);
     this.onComplete = onComplete;
     this.fogClearRadius = 0;
+    this.fireworksStarted = false;
 
     // Store original values
     this.originalSkyColor.copy(this.scene.fog ? (this.scene.fog as THREE.FogExp2).color : new THREE.Color(0xd4d4d8));
@@ -89,6 +126,9 @@ export class WinSequence {
 
     // Play victory sound
     this.playVictorySound();
+
+    // Create fragment beams
+    this.createFragmentBeams();
   }
 
   private triggerFlash(): void {
@@ -102,14 +142,55 @@ export class WinSequence {
     }
   }
 
+  private createFragmentBeams(): void {
+    // Clear existing beams
+    this.fragmentBeams.forEach(beam => {
+      this.scene.remove(beam);
+      beam.geometry.dispose();
+      (beam.material as THREE.Material).dispose();
+    });
+    this.fragmentBeams = [];
+
+    // Create beams from player to each fragment position
+    this.fragmentPositions.forEach((fragPos, i) => {
+      const start = this.playerPos.clone();
+      start.y = 3;
+      const end = fragPos.clone();
+      end.y = 3;
+
+      const distance = start.distanceTo(end);
+      const geometry = new THREE.CylinderGeometry(0.15, 0.15, distance, 8);
+
+      // Different colors for each beam
+      const colors = [0x00ffaa, 0xffaa00, 0xff00ff, 0x00aaff, 0xff4444, 0xffff00, 0x00ff00];
+      const material = new THREE.MeshBasicMaterial({
+        color: colors[i % colors.length],
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+      });
+
+      const beam = new THREE.Mesh(geometry, material);
+
+      // Position at midpoint
+      beam.position.copy(start).lerp(end, 0.5);
+
+      // Rotate to point toward fragment
+      beam.lookAt(end);
+      beam.rotateX(Math.PI / 2);
+
+      this.fragmentBeams.push(beam);
+      this.scene.add(beam);
+    });
+  }
+
   private playVictorySound(): void {
-    // Play a triumphant chord using AudioManager's context
     const audioContext = (this.audioManager as any).audioContext as AudioContext;
     if (!audioContext) return;
 
     const now = audioContext.currentTime;
 
-    // Triumphant chord: C major with octave (C4, E4, G4, C5)
+    // Triumphant chord: C major with octave
     const frequencies = [261.63, 329.63, 392.00, 523.25, 659.25];
 
     frequencies.forEach((freq, i) => {
@@ -130,6 +211,41 @@ export class WinSequence {
       osc.start(startTime);
       osc.stop(startTime + 2.5);
     });
+
+    // Firework sounds (delayed)
+    setTimeout(() => {
+      this.playFireworkSound(audioContext);
+    }, 2500);
+  }
+
+  private playFireworkSound(audioContext: AudioContext): void {
+    // Create several pop sounds for fireworks
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        const noise = audioContext.createBufferSource();
+        const buffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.1, audioContext.sampleRate);
+        const data = buffer.getChannelData(0);
+
+        for (let j = 0; j < data.length; j++) {
+          data[j] = (Math.random() * 2 - 1) * Math.exp(-j / (audioContext.sampleRate * 0.02));
+        }
+
+        noise.buffer = buffer;
+
+        const filter = audioContext.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 1000 + Math.random() * 2000;
+
+        const gain = audioContext.createGain();
+        gain.gain.value = 0.2;
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioContext.destination);
+
+        noise.start();
+      }, i * 400);
+    }
   }
 
   update(delta: number): boolean {
@@ -137,12 +253,26 @@ export class WinSequence {
 
     this.sequenceTime += delta;
 
-    // Phase 1: Initial impact (0-0.5s) - handled by flash
+    // Phase 1: Fragment beams appear (0.5-2.0s)
+    if (this.sequenceTime > 0.5 && this.sequenceTime < 2.0) {
+      const beamProgress = Math.min((this.sequenceTime - 0.5) / 1.0, 1);
+      this.fragmentBeams.forEach((beam, i) => {
+        const staggeredProgress = Math.max(0, Math.min(1, (beamProgress - i * 0.1) * 1.5));
+        (beam.material as THREE.MeshBasicMaterial).opacity = staggeredProgress * 0.7;
+      });
+    }
 
-    // Phase 2: Fog clear wave (0.5-3.5s)
+    // Fade out beams (2.0-3.0s)
+    if (this.sequenceTime > 2.0 && this.sequenceTime < 3.0) {
+      const fadeProgress = (this.sequenceTime - 2.0) / 1.0;
+      this.fragmentBeams.forEach(beam => {
+        (beam.material as THREE.MeshBasicMaterial).opacity = 0.7 * (1 - fadeProgress);
+      });
+    }
+
+    // Phase 2: Fog clear wave (0.3-3.5s)
     if (this.sequenceTime > 0.3 && this.sequenceTime < 3.5) {
       const fogProgress = Math.min((this.sequenceTime - 0.3) / 3.0, 1);
-      // Ease-in-out cubic
       const eased = fogProgress < 0.5
         ? 4 * fogProgress * fogProgress * fogProgress
         : 1 - Math.pow(-2 * fogProgress + 2, 3) / 2;
@@ -151,34 +281,58 @@ export class WinSequence {
       this.fogOfWar.clearAt(this.playerPos.x, this.playerPos.z, this.fogClearRadius);
     }
 
-    // Phase 3: Sky transform (1.0-4.0s)
+    // Phase 3: Sky transform + God rays (1.0-4.0s)
     if (this.sequenceTime > 1.0 && this.sequenceTime < 4.0) {
       const skyProgress = Math.min((this.sequenceTime - 1.0) / 3.0, 1);
-      const targetSkyColor = new THREE.Color(0xffa563); // Golden
-      const targetSunColor = new THREE.Color(0xffa500); // Orange
+      const targetSkyColor = new THREE.Color(0xffa563);
+      const targetSunColor = new THREE.Color(0xffa500);
 
-      // Interpolate colors
       const currentSkyColor = this.originalSkyColor.clone().lerp(targetSkyColor, skyProgress);
       this.renderer.setClearColor(currentSkyColor);
       if (this.scene.fog) {
         (this.scene.fog as THREE.FogExp2).color.copy(currentSkyColor);
       }
 
-      // Animate sun
       this.sunLight.color.copy(this.originalSunColor.clone().lerp(targetSunColor, skyProgress));
       this.sunLight.intensity = this.originalSunIntensity + skyProgress * 0.4;
       this.ambientLight.intensity = this.originalAmbientIntensity + skyProgress * 0.3;
+
+      // God rays fade in
+      if (this.godRaysOverlay) {
+        this.godRaysOverlay.style.opacity = String(skyProgress * 0.8);
+      }
     }
 
-    // Phase 4: Camera drift up slightly (2.0-5.0s)
+    // Phase 4: Fireworks (2.5-5.5s)
+    if (this.sequenceTime > 2.5 && !this.fireworksStarted) {
+      this.fireworksStarted = true;
+      // Launch fireworks from high positions around the city
+      const launchPositions: THREE.Vector3[] = [];
+      for (let i = 0; i < 6; i++) {
+        const angle = (i / 6) * Math.PI * 2;
+        const dist = 80 + Math.random() * 40;
+        launchPositions.push(new THREE.Vector3(
+          Math.cos(angle) * dist,
+          0,
+          Math.sin(angle) * dist
+        ));
+      }
+      this.fireworks.start(launchPositions);
+    }
+
+    // Update fireworks
+    this.fireworks.update(delta);
+
+    // Phase 5: Camera drift up (2.0-5.0s)
     if (this.sequenceTime > 2.0 && this.sequenceTime < 5.0) {
       const camProgress = (this.sequenceTime - 2.0) / 3.0;
-      this.camera.position.y += delta * 2 * (1 - camProgress); // Slow drift up
+      this.camera.position.y += delta * 2 * (1 - camProgress);
     }
 
     // Sequence complete
-    if (this.sequenceTime >= 5.5) {
+    if (this.sequenceTime >= 6.0) {
       this.isPlaying = false;
+      this.cleanup();
       if (this.onComplete) {
         this.onComplete();
       }
@@ -186,6 +340,24 @@ export class WinSequence {
     }
 
     return true;
+  }
+
+  private cleanup(): void {
+    // Stop fireworks
+    this.fireworks.stop();
+
+    // Remove beams
+    this.fragmentBeams.forEach(beam => {
+      this.scene.remove(beam);
+      beam.geometry.dispose();
+      (beam.material as THREE.Material).dispose();
+    });
+    this.fragmentBeams = [];
+
+    // Fade out god rays
+    if (this.godRaysOverlay) {
+      this.godRaysOverlay.style.opacity = '0';
+    }
   }
 
   getIsPlaying(): boolean {
@@ -196,5 +368,9 @@ export class WinSequence {
     if (this.flashOverlay && this.flashOverlay.parentNode) {
       this.flashOverlay.parentNode.removeChild(this.flashOverlay);
     }
+    if (this.godRaysOverlay && this.godRaysOverlay.parentNode) {
+      this.godRaysOverlay.parentNode.removeChild(this.godRaysOverlay);
+    }
+    this.cleanup();
   }
 }

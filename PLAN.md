@@ -132,7 +132,7 @@ const STAMINA_REGEN = 15;  // per second
 ```
 
 - [x] Smooth acceleration/deceleration
-- [ ] Head bob (subtle)
+- [x] Head bob (subtle)
 - [ ] Footstep sounds (optional)
 
 **Milestone:** Smooth first-person movement through city
@@ -300,7 +300,7 @@ material.onBeforeCompile = (shader) => {
 **Diverse Building Shapes**
 - [x] Add cylinder buildings (towers) - Use `CylinderGeometry`
 - [x] Add pyramids (peaked roofs) - Use `ConeGeometry` on top of boxes
-- [ ] Add L-shaped buildings - Combine two boxes
+- [x] Add L-shaped buildings - Combine two boxes
 - [x] Vary building types by distance from center:
   - City center: Tall cylinders (skyscrapers)
   - Mid-range: Box buildings (current style)
@@ -327,10 +327,10 @@ material.onBeforeCompile = (shader) => {
 - [x] Update pause menu to remove T key control
 
 **Night Vision / Torch Effect**
-- [ ] Add SpotLight attached to camera (night theme only)
-- [ ] Cone angle: 45°, distance: 30 units
-- [ ] Points in camera direction
-- [ ] Enable only during night/neon themes
+- [x] Add SpotLight attached to camera (night theme only)
+- [x] Cone angle: 45°, distance: 30 units
+- [x] Points in camera direction
+- [x] Enable only during night/neon themes
 - [ ] Fragments glow brighter at night (increase emissive intensity)
 
 **Implementation:**
@@ -347,17 +347,17 @@ if (themeIndex !== this.currentThemeIndex) {
 ### 8.3 Water/Lake System (Medium - 45-60 min)
 
 **Water Bodies**
-- [ ] Create `Water.ts` class
-- [ ] Add 1-3 lakes/rivers to city generation
-- [ ] Lakes = circular blue planes with animated shader
-- [ ] Rivers = elongated rectangles connecting areas
+- [x] Create `Water.ts` class
+- [x] Add 1-3 lakes/rivers to city generation
+- [x] Lakes = circular blue planes with animated shader
+- [x] Rivers = elongated rectangles connecting areas
 - [ ] Skip building spawn in water areas
 
 **Water Mechanics**
-- [ ] Detect when player is in water (check Y < 0.5 and XZ in water bounds)
-- [ ] Reduce movement speed by 50% in water
-- [ ] Lower camera height slightly (wade effect)
-- [ ] Add ripple effect around player in water
+- [x] Detect when player is in water (check Y < 0.5 and XZ in water bounds)
+- [x] Reduce movement speed by 50% in water
+- [x] Lower camera height slightly (wade effect)
+- [x] Add ripple effect around player in water (shader-based)
 - [ ] Fragments can spawn on small islands or floating in water
 
 **Water Shader** (Simple animated water)
@@ -379,12 +379,12 @@ gl_FragColor = vec4(mix(waterColor, vec3(0.8), foam), 0.7);
 ### 8.4 Enemy/Hazard System (Medium - 60 min)
 
 **Option A: Stationary Guards (Simpler)**
-- [ ] Create `Guard.ts` class
-- [ ] Spawn 3-5 guards in random locations (not near spawn)
-- [ ] Guards have vision cones (check player angle + distance)
-- [ ] If spotted: lose stamina rapidly (drain faster)
-- [ ] Visual: Red cone showing vision area
-- [ ] Avoid combat - pure stealth mechanic
+- [x] Create `Guard.ts` class
+- [x] Spawn 3-5 guards in random locations (not near spawn)
+- [x] Guards have vision cones (check player angle + distance)
+- [x] If spotted: lose stamina rapidly (drain faster)
+- [x] Visual: Red cone showing vision area
+- [x] Avoid combat - pure stealth mechanic
 
 **Option B: Fog Creatures (Thematic)**
 - [ ] Create `FogCreature.ts` class
@@ -465,16 +465,16 @@ if (newPosition.y <= PLAYER_HEIGHT) {
 - [ ] Billboards - Tall rectangles with emissive texture
 
 **Landmarks** (1-3 unique structures)
-- [ ] Central tower - Ultra-tall cylinder (150+ units) in city center
-- [ ] Pyramid monument - Large pyramid in random location
-- [ ] Sphere dome - Large sphere (planetarium/arena)
-- [ ] Visible from anywhere, helps with navigation
+- [x] Central tower - Ultra-tall cylinder (150+ units) in city center
+- [x] Pyramid monument - Large pyramid in random location
+- [x] Sphere dome - Large sphere (planetarium/arena)
+- [x] Visible from anywhere, helps with navigation
 
 ### 8.8 Advanced Movement (Medium - 30 min)
 
 **Parkour Mechanics:**
 - [ ] Climb low buildings - If building height < 15 units, can walk up at reduced speed
-- [ ] Dash ability - Double-tap WASD for quick burst (costs 20 stamina)
+- [x] Dash ability - Double-tap WASD for quick burst (costs 20 stamina)
 - [ ] Slide - Hold Ctrl while sprinting to slide (faster, can't turn)
 - [ ] Wallrun - Run along building sides briefly
 
@@ -663,10 +663,10 @@ private animateSkyTransform(duration: number): void {
 ```
 
 **God Rays (Volumetric Light):**
-- [ ] Add radial blur post-processing pass
-- [ ] Source point: sun position in screen space
-- [ ] Intensity fades in: 0 → 0.3 over 1 second
-- [ ] Yellow/orange tint
+- [x] Add radial blur post-processing pass (CSS overlay approach)
+- [x] Source point: sun position in screen space
+- [x] Intensity fades in: 0 → 0.3 over 1 second
+- [x] Yellow/orange tint
 
 **God Ray Implementation:**
 ```typescript
@@ -791,10 +791,10 @@ export class Firework {
 ```
 
 **Firework Spawning:**
-- [ ] Find 5-7 tallest buildings
-- [ ] Stagger launches (0.3-0.5s apart)
-- [ ] Use colors: green, gold, purple, blue, red
-- [ ] Random pattern (not all buildings)
+- [x] Find 5-7 tallest buildings
+- [x] Stagger launches (0.3-0.5s apart)
+- [x] Use colors: green, gold, purple, blue, red
+- [x] Random pattern (not all buildings)
 
 ### 9.6 Camera Animation (2.0-5.0s)
 
@@ -829,13 +829,13 @@ private animateCamera(duration: number): void {
 ### 9.7 Fragment Connection Beams (1.5-3.5s)
 
 **Light Beam Effect:**
-- [ ] Create beam from player to each collected fragment
-- [ ] Use `CylinderGeometry` (thin, tall)
-- [ ] Rotate to point from player to fragment
-- [ ] Emissive material with additive blending
-- [ ] Animate: grow from 0 → full length over 0.5s
-- [ ] Hold for 1s, fade out over 0.5s
-- [ ] Stagger: 0.2s delay between each beam
+- [x] Create beam from player to each collected fragment
+- [x] Use `CylinderGeometry` (thin, tall)
+- [x] Rotate to point from player to fragment
+- [x] Emissive material with additive blending
+- [x] Animate: grow from 0 → full length over 0.5s
+- [x] Hold for 1s, fade out over 0.5s
+- [x] Stagger: 0.2s delay between each beam
 
 **Beam Creation:**
 ```typescript
@@ -889,7 +889,7 @@ private createFragmentBeam(
 - [ ] Optional: Capture screenshot before dimming
 
 **Animated Stats:**
-- [ ] Stats appear with stagger (not all at once)
+- [x] Stats appear with stagger (not all at once)
 - [ ] Counter animation (numbers count up)
 - [ ] Pulse/glow effect on high scores
 - [ ] Confetti particles in UI layer (optional)
