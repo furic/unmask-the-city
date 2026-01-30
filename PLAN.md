@@ -543,6 +543,497 @@ if (newPosition.y <= PLAYER_HEIGHT) {
 
 ---
 
+## Phase 9: Epic Victory Sequence - "The Great Unmasking" 🎆
+
+### Overview
+Create a dramatic, thematic ending that visualizes the "unmasking" of the city when all fragments are collected. Total sequence: ~5-6 seconds before win screen.
+
+### 9.1 Trigger & Initial Impact (0-0.5s)
+
+**Final Fragment Collection:**
+- [ ] Detect final fragment collection in `Game.ts`
+- [ ] Trigger `startWinSequence()` instead of immediate win screen
+- [ ] Lock player controls (freeze movement)
+- [ ] **Intense screen shake** (2x normal collection shake)
+- [ ] **Bright flash** effect (white overlay, fade out quickly)
+- [ ] **Sound**: Triumphant chord/arpeggio
+
+### 9.2 Fog Vanishes - "Unmask" Effect (0.5-3.0s)
+
+**Expanding Wave Clear:**
+- [ ] Create `clearAllFog()` method in `FogOfWar.ts`
+- [ ] Animate clearing in expanding circular wave from player
+- [ ] Use easing: start slow, accelerate, then slow at edges
+- [ ] Duration: 2.5 seconds total
+- [ ] Update texture every frame during animation
+
+**Implementation:**
+```typescript
+// In FogOfWar.ts
+clearAllAnimated(centerX: number, centerZ: number, duration: number, onComplete: () => void): void {
+  const maxRadius = Math.sqrt(this.worldSize * this.worldSize * 2);
+  let elapsed = 0;
+
+  const animate = (delta: number) => {
+    elapsed += delta;
+    const progress = Math.min(elapsed / duration, 1);
+
+    // Ease-in-out cubic
+    const eased = progress < 0.5
+      ? 4 * progress * progress * progress
+      : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+    const radius = eased * maxRadius;
+    this.clearAt(centerX, centerZ, radius);
+
+    if (progress >= 1) {
+      onComplete();
+    }
+  };
+
+  // Call from game loop
+}
+```
+
+**Particle Effect:**
+- [ ] Fog particles stream upward as fog clears
+- [ ] Spawn 200-300 particles in cleared ring area
+- [ ] Rise speed: 20 units/sec
+- [ ] Fade out over 2 seconds
+- [ ] Reuse `FogParticles` with upward velocity
+
+### 9.3 City Awakens (1.0-4.0s)
+
+**Building Windows Light Up:**
+- [ ] Add `windowLightIntensity` uniform to building shader
+- [ ] Animate intensity: 0 → 1 over 2 seconds
+- [ ] Wave pattern: lights turn on from center outward or bottom to top
+- [ ] Use existing window pattern from shader, add emissive
+
+**Shader Update:**
+```glsl
+// Add to building fragment shader (in City.ts setupFogShader)
+uniform float windowLightIntensity;
+
+// After window pattern calculation
+float windowEmit = (1.0 - windowPattern) * windowLightIntensity;
+vec3 windowColor = vec3(1.0, 0.8, 0.4); // Warm golden
+gl_FragColor.rgb += windowColor * windowEmit * 0.4;
+```
+
+**Neon Signs (if implemented):**
+- [ ] Pulse existing neon signs brighter
+- [ ] Increase emissive intensity by 2x
+- [ ] Add pulsing animation
+
+**Street Lights (if implemented):**
+- [ ] All street lights turn on
+- [ ] Point light intensity increases
+- [ ] Add lens flare effect (optional)
+
+### 9.4 Sky & Atmosphere Transform (1.5-4.0s)
+
+**Sky Color Transition:**
+- [ ] Animate scene fog color: `0xd4d4d8` → `0xffa563` (golden)
+- [ ] Animate clear color to match
+- [ ] Duration: 2 seconds
+- [ ] Smooth interpolation
+
+**Lighting Changes:**
+- [ ] Sun intensity: 0.8 → 1.2 (50% brighter)
+- [ ] Sun color: white → warm orange `0xffa500`
+- [ ] Ambient light intensity: 0.6 → 0.9
+- [ ] Hemisphere sky color: blue → warm orange
+
+**Implementation:**
+```typescript
+// In Game.ts or WinSequence.ts
+private animateSkyTransform(duration: number): void {
+  const startColor = new THREE.Color(0xd4d4d8);
+  const endColor = new THREE.Color(0xffa563);
+
+  // Animate in update loop
+  const progress = this.sequenceTime / duration;
+  const currentColor = startColor.clone().lerp(endColor, progress);
+
+  this.renderer.setClearColor(currentColor);
+  this.scene.fog.color.copy(currentColor);
+  this.sunLight.color.lerp(new THREE.Color(0xffa500), progress);
+}
+```
+
+**God Rays (Volumetric Light):**
+- [ ] Add radial blur post-processing pass
+- [ ] Source point: sun position in screen space
+- [ ] Intensity fades in: 0 → 0.3 over 1 second
+- [ ] Yellow/orange tint
+
+**God Ray Implementation:**
+```typescript
+const GodRayShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    sunPosition: { value: new THREE.Vector2(0.5, 0.3) },
+    intensity: { value: 0.0 },
+  },
+  vertexShader: `...`,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform vec2 sunPosition;
+    uniform float intensity;
+    varying vec2 vUv;
+
+    void main() {
+      vec3 color = texture2D(tDiffuse, vUv).rgb;
+      vec2 dir = vUv - sunPosition;
+      float dist = length(dir);
+
+      // Radial blur
+      vec3 rays = vec3(0.0);
+      for (int i = 0; i < 6; i++) {
+        rays += texture2D(tDiffuse, vUv - dir * float(i) * 0.015).rgb;
+      }
+      rays /= 6.0;
+
+      // Mix based on distance from sun
+      float rayStrength = (1.0 - smoothstep(0.0, 0.8, dist)) * intensity;
+      color += rays * rayStrength * vec3(1.0, 0.9, 0.6);
+
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `,
+};
+```
+
+### 9.5 Fireworks System (2.5-5.5s)
+
+**Create `Firework.ts`:**
+
+```typescript
+interface FireworkParticle {
+  position: THREE.Vector3;
+  velocity: THREE.Vector3;
+  life: number;
+  maxLife: number;
+  color: THREE.Color;
+}
+
+export class Firework {
+  private particles: FireworkParticle[] = [];
+  private state: 'launching' | 'exploding' | 'done' = 'launching';
+  private rocket: THREE.Mesh;
+  private rocketVelocity: THREE.Vector3;
+
+  constructor(
+    launchPos: THREE.Vector3,
+    color: THREE.Color,
+    scene: THREE.Scene
+  ) {
+    // Create rocket (small glowing particle)
+    this.rocket = new THREE.Mesh(
+      new THREE.SphereGeometry(0.3),
+      new THREE.MeshBasicMaterial({ color })
+    );
+    this.rocket.position.copy(launchPos);
+    scene.add(this.rocket);
+
+    // Upward velocity
+    this.rocketVelocity = new THREE.Vector3(
+      (Math.random() - 0.5) * 5,  // Slight X variance
+      50 + Math.random() * 20,     // Upward
+      (Math.random() - 0.5) * 5    // Slight Z variance
+    );
+  }
+
+  update(delta: number): void {
+    if (this.state === 'launching') {
+      // Apply gravity
+      this.rocketVelocity.y -= 30 * delta;
+      this.rocket.position.add(
+        this.rocketVelocity.clone().multiplyScalar(delta)
+      );
+
+      // Explode when velocity becomes downward
+      if (this.rocketVelocity.y < 0) {
+        this.explode();
+      }
+    } else if (this.state === 'exploding') {
+      this.updateExplosion(delta);
+    }
+  }
+
+  private explode(): void {
+    this.state = 'exploding';
+    this.rocket.visible = false;
+
+    // Spawn 60-80 explosion particles
+    const particleCount = 60 + Math.random() * 20;
+    for (let i = 0; i < particleCount; i++) {
+      // Radial explosion
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.random() * Math.PI;
+      const speed = 15 + Math.random() * 10;
+
+      this.particles.push({
+        position: this.rocket.position.clone(),
+        velocity: new THREE.Vector3(
+          Math.sin(phi) * Math.cos(theta) * speed,
+          Math.abs(Math.cos(phi)) * speed,
+          Math.sin(phi) * Math.sin(theta) * speed
+        ),
+        life: 1.5 + Math.random() * 0.5,
+        maxLife: 1.5 + Math.random() * 0.5,
+        color: this.color.clone(),
+      });
+    }
+  }
+}
+```
+
+**Firework Spawning:**
+- [ ] Find 5-7 tallest buildings
+- [ ] Stagger launches (0.3-0.5s apart)
+- [ ] Use colors: green, gold, purple, blue, red
+- [ ] Random pattern (not all buildings)
+
+### 9.6 Camera Animation (2.0-5.0s)
+
+**Cinematic Movement:**
+- [ ] Store original camera position and rotation
+- [ ] Target: Move back 20%, tilt up 10°
+- [ ] Smooth interpolation (ease-in-out)
+- [ ] Duration: 3 seconds
+- [ ] Disable pointer lock during sequence
+
+**Implementation:**
+```typescript
+private animateCamera(duration: number): void {
+  const startPos = this.camera.position.clone();
+  const startRot = this.camera.rotation.clone();
+
+  // Calculate target (zoom out and tilt up)
+  const direction = new THREE.Vector3();
+  this.camera.getWorldDirection(direction);
+  const targetPos = startPos.clone().sub(direction.multiplyScalar(20));
+  targetPos.y += 10;
+
+  // Animate in update loop
+  const progress = Math.min(this.sequenceTime / duration, 1);
+  const eased = this.easeInOutCubic(progress);
+
+  this.camera.position.lerpVectors(startPos, targetPos, eased);
+  this.camera.lookAt(startPos); // Keep looking at player area
+}
+```
+
+### 9.7 Fragment Connection Beams (1.5-3.5s)
+
+**Light Beam Effect:**
+- [ ] Create beam from player to each collected fragment
+- [ ] Use `CylinderGeometry` (thin, tall)
+- [ ] Rotate to point from player to fragment
+- [ ] Emissive material with additive blending
+- [ ] Animate: grow from 0 → full length over 0.5s
+- [ ] Hold for 1s, fade out over 0.5s
+- [ ] Stagger: 0.2s delay between each beam
+
+**Beam Creation:**
+```typescript
+private createFragmentBeam(
+  start: THREE.Vector3,
+  end: THREE.Vector3,
+  color: THREE.Color
+): THREE.Mesh {
+  const distance = start.distanceTo(end);
+  const geometry = new THREE.CylinderGeometry(0.1, 0.1, distance, 8);
+  const material = new THREE.MeshBasicMaterial({
+    color,
+    transparent: true,
+    opacity: 0.6,
+    blending: THREE.AdditiveBlending,
+  });
+
+  const beam = new THREE.Mesh(geometry, material);
+
+  // Position and rotate toward target
+  beam.position.copy(start).lerp(end, 0.5);
+  beam.lookAt(end);
+  beam.rotateX(Math.PI / 2);
+
+  return beam;
+}
+```
+
+### 9.8 Audio Sequence (Throughout)
+
+**Sound Timeline:**
+- [ ] 0.0s: Final collection chime (existing)
+- [ ] 0.5s: Whoosh/wind sound (fog clearing)
+- [ ] 2.0s: Ambient music shifts to triumphant/uplifting
+- [ ] 2.5-3.5s: Firework launch sounds (whoosh)
+- [ ] 3.0-4.5s: Firework explosions (pops, crackles)
+- [ ] 4.0s: Victory fanfare (musical stinger)
+- [ ] 5.0s: Ambience fades for win screen
+
+**Audio Manager Updates:**
+- [ ] Add `playVictorySequence()` method
+- [ ] Procedural sounds for fireworks (pitch-varied pops)
+- [ ] Layered music transition
+
+### 9.9 Win Screen Enhancement
+
+**Background:**
+- [ ] City remains visible (dimmed)
+- [ ] Win screen semi-transparent overlay
+- [ ] Lit buildings shimmer in background
+- [ ] Optional: Capture screenshot before dimming
+
+**Animated Stats:**
+- [ ] Stats appear with stagger (not all at once)
+- [ ] Counter animation (numbers count up)
+- [ ] Pulse/glow effect on high scores
+- [ ] Confetti particles in UI layer (optional)
+
+---
+
+## Victory Sequence Implementation Strategy
+
+### File Structure
+
+**New File: `src/game/WinSequence.ts`**
+```typescript
+export class WinSequence {
+  private scene: THREE.Scene;
+  private camera: THREE.PerspectiveCamera;
+  private fogOfWar: FogOfWar;
+  private city: City;
+  private player: Player;
+  private collectibles: Collectible[];
+  private audioManager: AudioManager;
+  private composer: EffectComposer;
+
+  private sequenceTime = 0;
+  private isPlaying = false;
+  private fireworks: Firework[] = [];
+  private beams: THREE.Mesh[] = [];
+  private godRayPass: ShaderPass | null = null;
+
+  constructor(/*...*/) { }
+
+  async play(playerPos: THREE.Vector3): Promise<void> {
+    this.isPlaying = true;
+
+    // Phase 1: Initial impact (0.5s)
+    await this.initialImpact();
+
+    // Phase 2-7: Parallel animations
+    this.startFogClear(playerPos);
+    this.startBuildingLights();
+    this.startSkyTransform();
+    this.spawnFireworks();
+    this.animateCamera(playerPos);
+    this.connectFragments(playerPos);
+
+    // Wait for all to complete
+    await this.waitForSequence(5500);
+
+    this.isPlaying = false;
+  }
+
+  update(delta: number): void {
+    if (!this.isPlaying) return;
+    this.sequenceTime += delta;
+
+    this.updateFogClear(delta);
+    this.updateBuildingLights(delta);
+    this.updateSkyTransform(delta);
+    this.updateFireworks(delta);
+    this.updateCamera(delta);
+    this.updateBeams(delta);
+  }
+
+  cleanup(): void {
+    // Remove all temporary objects
+    this.fireworks.forEach(f => f.cleanup());
+    this.beams.forEach(b => this.scene.remove(b));
+    if (this.godRayPass) this.composer.removePass(this.godRayPass);
+  }
+}
+```
+
+**Integrate into `Game.ts`:**
+```typescript
+private winSequence: WinSequence;
+
+constructor() {
+  // After other initializations
+  this.winSequence = new WinSequence(
+    this.scene,
+    this.camera,
+    this.fogOfWar,
+    this.city,
+    this.player,
+    this.collectibles,
+    this.audioManager,
+    this.composer
+  );
+}
+
+private async onWin(): Promise<void> {
+  const playerPos = this.player.getCurrentPosition();
+
+  // Play epic win sequence
+  await this.winSequence.play(playerPos);
+
+  // Then show win screen with stats
+  this.showWinScreen();
+}
+
+// Update loop
+private animate(): void {
+  // ... existing code ...
+
+  // Update win sequence if playing
+  this.winSequence.update(delta);
+}
+```
+
+---
+
+## Complexity Tiers
+
+### ⚡ Quick Version (15-20 min)
+**Just the essentials:**
+- [ ] Fog clears instantly (call `fogOfWar.reset()` but set to clear)
+- [ ] Sky shifts to sunset (existing theme change)
+- [ ] Brief pause (2s) before win screen
+- [ ] **Impact:** Moderate, very quick to implement
+
+### ⭐ Medium Version (30-45 min)
+**Noticeable improvement:**
+- [ ] Animated fog clear (expanding wave, 2s)
+- [ ] Building windows light up progressively
+- [ ] Sky transforms to golden
+- [ ] Camera zooms out slightly
+- [ ] Win screen overlays lit city
+- [ ] **Impact:** Good, thematic, satisfying
+
+### 🔥 Full Epic Version (60-90 min)
+**Maximum impact:**
+- [ ] All medium features
+- [ ] Fireworks from tall buildings (5-7 fireworks)
+- [ ] God rays from sky (volumetric light shader)
+- [ ] Fragment connection beams
+- [ ] Upward fog particles (steam effect)
+- [ ] Audio sequence with multiple sound cues
+- [ ] Cinematic camera movement
+- [ ] Animated win screen stats
+- [ ] **Impact:** Spectacular, memorable, award-worthy
+
+**Recommended:** Start with ⭐ **Medium**, add 🔥 **Epic** features if time permits
+
+---
+
 ## Stretch Goals (If Time Permits)
 
 1. **Multiplayer fog reveal** - See other players' explored areas

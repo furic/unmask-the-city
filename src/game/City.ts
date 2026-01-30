@@ -113,11 +113,12 @@ export class City {
     this.buildingMaterial.onBeforeCompile = (shader) => {
       // Add uniforms
       shader.uniforms.fogMap = { value: this.fogOfWar.getTexture() };
-      shader.uniforms.cityBounds = { 
+      shader.uniforms.corruptionMap = { value: this.fogOfWar.getCorruptionTexture() };
+      shader.uniforms.cityBounds = {
         value: new THREE.Vector4(
-          -this.size / 2, -this.size / 2, 
+          -this.size / 2, -this.size / 2,
           this.size / 2, this.size / 2
-        ) 
+        )
       };
       shader.uniforms.playerPos = { value: new THREE.Vector3() };
 
@@ -144,6 +145,7 @@ export class City {
         `
         #include <common>
         uniform sampler2D fogMap;
+        uniform sampler2D corruptionMap;
         uniform vec4 cityBounds;
         uniform vec3 playerPos;
         varying vec3 vWorldPos;
@@ -173,15 +175,18 @@ export class City {
         vec2 fowUV = (vWorldPos.xz - cityBounds.xy) / (cityBounds.zw - cityBounds.xy);
         fowUV = clamp(fowUV, 0.0, 1.0);
         float fowDensity = texture2D(fogMap, fowUV).r;
+        float corruption = texture2D(corruptionMap, fowUV).r;
 
         // Player proximity (real-time clear zone)
         float distToPlayer = length(vWorldPos.xz - playerPos.xz);
         float playerClear = 1.0 - smoothstep(15.0, 30.0, distToPlayer);
         fowDensity = min(fowDensity, 1.0 - playerClear);
 
-        // Apply fog of war
+        // Apply fog of war with corruption tint
         vec3 fowColor = vec3(0.83, 0.83, 0.85);
-        gl_FragColor.rgb = mix(gl_FragColor.rgb, fowColor, fowDensity * 0.9);
+        vec3 corruptedColor = vec3(0.6, 0.2, 0.2); // Dark red for corrupted areas
+        vec3 finalFogColor = mix(fowColor, corruptedColor, corruption);
+        gl_FragColor.rgb = mix(gl_FragColor.rgb, finalFogColor, fowDensity * 0.9);
 
         #include <fog_fragment>
         `
@@ -197,6 +202,8 @@ export class City {
     if (shader) {
       shader.uniforms.fogMap.value = this.fogOfWar.getTexture();
       shader.uniforms.fogMap.value.needsUpdate = true;
+      shader.uniforms.corruptionMap.value = this.fogOfWar.getCorruptionTexture();
+      shader.uniforms.corruptionMap.value.needsUpdate = true;
       if (playerPos) {
         shader.uniforms.playerPos.value.copy(playerPos);
       }
@@ -439,7 +446,8 @@ export class City {
 
   private createMeshes(): void {
     // Count buildings by type
-    const boxBuildings = this.buildings.filter((b) => b.type === 'box');
+    // Pyramid buildings also need a box base, so include them in boxBuildings
+    const boxBuildings = this.buildings.filter((b) => b.type === 'box' || b.type === 'pyramid');
     const cylinderBuildings = this.buildings.filter((b) => b.type === 'cylinder');
     const pyramidBuildings = this.buildings.filter((b) => b.type === 'pyramid');
     const antennaBuildings = this.buildings.filter((b) => b.hasAntenna);
@@ -523,9 +531,11 @@ export class City {
         // Pyramid sits on top of building
         const pyramidHeight = building.height * 0.3;
         const pyramidY = building.position.y + building.height / 2 + pyramidHeight / 2;
-        const pyramidWidth = Math.min(building.width, building.depth) * 0.9;
 
-        scaleMatrix.makeScale(pyramidWidth, pyramidHeight, pyramidWidth);
+        // Use average of width/depth so pyramid base better matches building footprint
+        const pyramidBase = (building.width + building.depth) / 2 * 0.98;
+
+        scaleMatrix.makeScale(pyramidBase, pyramidHeight, pyramidBase);
         posMatrix.makeTranslation(building.position.x, pyramidY, building.position.z);
         matrix.multiplyMatrices(posMatrix, scaleMatrix);
         this.pyramidMeshes!.setMatrixAt(i, matrix);

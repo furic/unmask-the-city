@@ -372,7 +372,14 @@ export class Game {
 
     // Update fog of war
     this.fogOfWar.clearAt(playerPos.x, playerPos.z, this.settings.fogClearRadius);
+    this.fogOfWar.updateCorruption(delta);
     this.city.updateFogUniforms(playerPos);
+
+    // Check corruption damage - drain stamina in corrupted areas
+    const corruption = this.fogOfWar.getCorruptionAt(playerPos.x, playerPos.z);
+    if (corruption > 0.3) {
+      this.player.drainStamina(corruption * 15 * delta); // Up to 15 stamina/sec in fully corrupted areas
+    }
 
     // Update fog particles
     this.fogParticles.update(delta, playerPos);
@@ -570,8 +577,8 @@ export class Game {
     const dz = nearestZ - playerPos.z;
     const fragmentAngle = Math.atan2(dx, dz);
 
-    // Relative angle (0 = straight ahead)
-    const relativeAngle = fragmentAngle - cameraAngle;
+    // Relative angle (0 = straight ahead, negative = negate for CSS rotation direction)
+    const relativeAngle = -(fragmentAngle - cameraAngle);
 
     // Update arrow rotation
     arrowEl.style.transform = `translate(-50%, -50%) rotate(${relativeAngle}rad)`;

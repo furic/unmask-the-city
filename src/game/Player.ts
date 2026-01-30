@@ -190,6 +190,10 @@ export class Player {
     return (this.stamina / this.MAX_STAMINA) * 100;
   }
 
+  drainStamina(amount: number): void {
+    this.stamina = Math.max(0, this.stamina - amount);
+  }
+
   getMovementState(): { isMoving: boolean; isSprinting: boolean; inPark: boolean } {
     const isMoving = this.moveForward || this.moveBackward || this.moveLeft || this.moveRight;
     const canSprint = this.isSprinting && this.stamina > this.STAMINA_SPRINT_THRESHOLD;
