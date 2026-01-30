@@ -24,8 +24,8 @@ const DIFFICULTIES: Record<string, DifficultySettings> = {
   },
 };
 
-// Function to update leaderboard display
-async function updateLeaderboard() {
+// Function to update leaderboard display for a specific difficulty
+async function updateLeaderboard(difficulty: string = 'normal') {
   const leaderboardList = document.getElementById('leaderboard-list');
   if (!leaderboardList) return;
 
@@ -34,11 +34,16 @@ async function updateLeaderboard() {
 
   try {
     // Fetch merged global + local scores
-    const localScores = HighScoreManager.getTopScores(10);
-    const topScores = await GlobalLeaderboardManager.getMergedLeaderboard(localScores, 5);
+    const localScores = HighScoreManager.getScores();
+    const allScores = await GlobalLeaderboardManager.getMergedLeaderboard(localScores, 100);
+
+    // Filter by selected difficulty and take top 5
+    const topScores = allScores
+      .filter(s => s.difficulty === difficulty)
+      .slice(0, 5);
 
     if (topScores.length === 0) {
-      leaderboardList.innerHTML = '<div class="leaderboard-empty">No scores yet. Be the first!</div>';
+      leaderboardList.innerHTML = `<div class="leaderboard-empty">No ${difficulty} scores yet. Be the first!</div>`;
       return;
     }
 
@@ -54,7 +59,7 @@ async function updateLeaderboard() {
             <div class="leaderboard-stats">
               <div class="leaderboard-score">${entry.score} pts</div>
               <div class="leaderboard-details">
-                ${timeStr} • ${entry.explored.toFixed(0)}% • ${entry.difficulty}
+                ${timeStr} • ${entry.explored.toFixed(0)}%
               </div>
             </div>
           </div>
@@ -64,7 +69,10 @@ async function updateLeaderboard() {
   } catch (error) {
     console.error('Failed to load leaderboard:', error);
     // Fallback to local scores
-    const localScores = HighScoreManager.getTopScores(5);
+    const localScores = HighScoreManager.getScores()
+      .filter(s => s.difficulty === difficulty)
+      .slice(0, 5);
+
     if (localScores.length > 0) {
       leaderboardList.innerHTML = localScores
         .map((entry, index) => {
@@ -78,7 +86,7 @@ async function updateLeaderboard() {
               <div class="leaderboard-stats">
                 <div class="leaderboard-score">${entry.score} pts</div>
                 <div class="leaderboard-details">
-                  ${timeStr} • ${entry.explored.toFixed(0)}% • ${entry.difficulty} (local)
+                  ${timeStr} • ${entry.explored.toFixed(0)}% (local)
                 </div>
               </div>
             </div>
@@ -86,7 +94,7 @@ async function updateLeaderboard() {
         })
         .join('');
     } else {
-      leaderboardList.innerHTML = '<div class="leaderboard-empty">No scores yet. Be the first!</div>';
+      leaderboardList.innerHTML = `<div class="leaderboard-empty">No ${difficulty} scores yet. Be the first!</div>`;
     }
   }
 }
@@ -102,8 +110,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let selectedDifficulty = 'normal';
   let game: Game | null = null;
 
-  // Load and display leaderboard
-  updateLeaderboard();
+  // Load and display leaderboard for default difficulty
+  updateLeaderboard(selectedDifficulty);
 
   // Difficulty button handlers
   const difficultyBtns = document.querySelectorAll('.difficulty-btn');
@@ -126,6 +134,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       selectedDifficulty = btn.getAttribute('data-difficulty') || 'normal';
       updateDifficultyInfo(selectedDifficulty);
+
+      // Update leaderboard to show scores for selected difficulty
+      updateLeaderboard(selectedDifficulty);
     });
   });
 
@@ -153,8 +164,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (playAgainBtn) {
     playAgainBtn.addEventListener('click', () => {
       document.getElementById('win-screen')!.style.display = 'none';
-      // Update leaderboard before restarting
-      updateLeaderboard();
+      // Update leaderboard for current difficulty before restarting
+      updateLeaderboard(selectedDifficulty);
       // Show start screen
       startScreen?.classList.remove('hidden');
       if (game) {
