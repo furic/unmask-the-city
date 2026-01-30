@@ -1,0 +1,9 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "env": {
+    "GIST_ID": "@gist_id",
+    "GITHUB_TOKEN": "@github_token"
+  }
+}

@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Unmask the City | GGJ 2025</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        overflow: hidden;
+        background: #1a1a2e;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+      }
+      
+      #game-container {
+        width: 100vw;
+        height: 100vh;
+        position: relative;
+      }
+      
+      canvas {
+        display: block;
+      }
+      
+      /* HUD Overlay */
+      #hud {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        color: white;
+        font-size: 16px;
+      }
+      
+      #hud-top {
+        display: flex;
+        justify-content: space-between;
+        padding: 20px 30px;
+      }
+      
+      #hud-bottom {
+        position: absolute;
+        bottom: 20px;
+        left: 30px;
+        right: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+      }
+      
+      .hud-panel {
+        background: rgba(0, 0, 0, 0.5);
+        padding: 10px 20px;
+        border-radius: 8px;
+        backdrop-filter: blur(10px);
+      }
+      
+      #crosshair {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 20px;
+        height: 20px;
+      }
+      
+      #crosshair::before,
+      #crosshair::after {
+        content: '';
+        position: absolute;
+        background: rgba(255, 255, 255, 0.8);
+      }
+      
+      #crosshair::before {
+        width: 2px;
+        height: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      
+      #crosshair::after {
+        width: 100%;
+        height: 2px;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+
+      /* Compass indicator */
+      #compass {
+        position: absolute;
+        bottom: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 60px;
+      }
+
+      #compass-arrow {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-bottom: 24px solid #00ffaa;
+        transform-origin: center center;
+        filter: drop-shadow(0 0 8px #00ffaa);
+        transition: transform 0.1s ease-out;
+      }
+
+      #compass-ring {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 2px solid rgba(0, 255, 170, 0.3);
+        border-radius: 50%;
+      }
+
+      #compass-distance {
+        position: absolute;
+        bottom: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 12px;
+        color: #00ffaa;
+        white-space: nowrap;
+      }
+
+      #compass.hidden {
+        display: none;
+      }
+      
+      #stamina-bar {
+        width: 150px;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-top: 5px;
+      }
+      
+      #stamina-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #4ade80, #22c55e);
+        width: 100%;
+        transition: width 0.1s ease-out;
+      }
+      
+      /* Start Screen */
+      #start-screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        cursor: pointer;
+      }
+      
+      #start-screen h1 {
+        font-size: 48px;
+        font-weight: 300;
+        letter-spacing: 8px;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+      }
+      
+      #start-screen .subtitle {
+        font-size: 14px;
+        opacity: 0.6;
+        letter-spacing: 4px;
+        margin-bottom: 60px;
+      }
+      
+      #start-screen .prompt {
+        font-size: 18px;
+        opacity: 0.8;
+        animation: pulse 2s ease-in-out infinite;
+      }
+      
+      #start-screen .controls {
+        position: absolute;
+        bottom: 40px;
+        font-size: 12px;
+        opacity: 0.4;
+        letter-spacing: 1px;
+      }
+
+      /* Difficulty selector */
+      .difficulty-selector {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 40px;
+      }
+
+      .difficulty-btn {
+        padding: 12px 24px;
+        font-size: 14px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+
+      .difficulty-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.5);
+      }
+
+      .difficulty-btn.selected {
+        background: rgba(74, 222, 128, 0.3);
+        border-color: #4ade80;
+        color: #4ade80;
+      }
+
+      .difficulty-info {
+        font-size: 12px;
+        opacity: 0.6;
+        margin-top: 10px;
+      }
+      
+      @keyframes pulse {
+        0%, 100% { opacity: 0.8; }
+        50% { opacity: 0.4; }
+      }
+      
+      /* Win Screen */
+      #win-screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.85);
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+      }
+      
+      #win-screen h1 {
+        font-size: 36px;
+        margin-bottom: 30px;
+        color: #4ade80;
+      }
+      
+      #win-screen .stats {
+        font-size: 20px;
+        line-height: 2;
+        margin-bottom: 40px;
+        text-align: center;
+      }
+      
+      #win-screen button {
+        padding: 15px 40px;
+        font-size: 16px;
+        background: #4ade80;
+        color: #1a1a2e;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: transform 0.2s;
+      }
+      
+      #win-screen button:hover {
+        transform: scale(1.05);
+      }
+      
+      .hidden {
+        display: none !important;
+      }
+
+      /* Pause Menu */
+      #pause-menu {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(10px);
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 50;
+        cursor: pointer;
+        color: white;
+      }
+
+      #pause-menu h2 {
+        font-size: 36px;
+        font-weight: 300;
+        margin-bottom: 40px;
+        letter-spacing: 4px;
+      }
+
+      #pause-menu .controls-list {
+        font-size: 16px;
+        line-height: 2.2;
+        margin-bottom: 50px;
+        opacity: 0.9;
+      }
+
+      #pause-menu .controls-list .control-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        min-width: 400px;
+        padding: 5px 0;
+      }
+
+      #pause-menu .controls-list .key {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 4px 12px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        font-family: monospace;
+        font-size: 14px;
+        min-width: 120px;
+        text-align: center;
+      }
+
+      #pause-menu .controls-list .action {
+        opacity: 0.7;
+        margin-left: 30px;
+      }
+
+      #pause-menu .resume-prompt {
+        font-size: 18px;
+        opacity: 0.6;
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      /* Leaderboard */
+      .leaderboard {
+        position: absolute;
+        right: 60px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0, 0, 0, 0.5);
+        padding: 20px 30px;
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        min-width: 300px;
+      }
+
+      .leaderboard h3 {
+        font-size: 18px;
+        font-weight: 300;
+        letter-spacing: 3px;
+        margin-bottom: 15px;
+        text-align: center;
+        opacity: 0.8;
+      }
+
+      .leaderboard-list {
+        font-size: 14px;
+        line-height: 1.8;
+      }
+
+      .leaderboard-entry {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .leaderboard-entry:last-child {
+        border-bottom: none;
+      }
+
+      .leaderboard-rank {
+        color: #4ade80;
+        font-weight: 600;
+        width: 30px;
+      }
+
+      .leaderboard-stats {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .leaderboard-score {
+        font-weight: 600;
+        color: white;
+      }
+
+      .leaderboard-details {
+        font-size: 11px;
+        opacity: 0.5;
+      }
+
+      .leaderboard-empty {
+        text-align: center;
+        opacity: 0.4;
+        padding: 20px 0;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container">
+      <!-- Start Screen -->
+      <div id="start-screen">
+        <h1>Unmask the City</h1>
+        <p class="subtitle">Global Game Jam 2025</p>
+
+        <div class="difficulty-selector">
+          <button class="difficulty-btn" data-difficulty="easy">Easy</button>
+          <button class="difficulty-btn selected" data-difficulty="normal">Normal</button>
+          <button class="difficulty-btn" data-difficulty="hard">Hard</button>
+        </div>
+        <p class="difficulty-info" id="difficulty-info">7 fragments • 400m city</p>
+
+        <p class="prompt">Click anywhere to Start</p>
+        <p class="controls">WASD to move • SHIFT to sprint • SPACE to jump • M to mute</p>
+
+        <!-- Leaderboard -->
+        <div class="leaderboard">
+          <h3>TOP SCORES</h3>
+          <div class="leaderboard-list" id="leaderboard-list">
+            <div class="leaderboard-empty">No scores yet. Be the first!</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- HUD -->
+      <div id="hud" class="hidden">
+        <div id="hud-top">
+          <div class="hud-panel">
+            <span id="fragment-counter">Fragments: 0 / 7</span>
+          </div>
+          <div class="hud-panel">
+            <span id="timer">Time: 00:00</span>
+          </div>
+        </div>
+        
+        <div id="crosshair"></div>
+
+        <!-- Compass pointing to nearest fragment -->
+        <div id="compass">
+          <div id="compass-ring"></div>
+          <div id="compass-arrow"></div>
+          <div id="compass-distance"></div>
+        </div>
+
+        <div id="hud-bottom">
+          <div class="hud-panel">
+            <span id="explored">Explored: 0%</span>
+          </div>
+          <div class="hud-panel">
+            <span>Stamina</span>
+            <div id="stamina-bar">
+              <div id="stamina-fill"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Win Screen -->
+      <div id="win-screen">
+        <h1>City Unmasked!</h1>
+        <div class="stats">
+          <div id="final-time">Time: 00:00</div>
+          <div id="final-explored">Explored: 0%</div>
+          <div id="final-score">Score: 0</div>
+        </div>
+        <button id="play-again">Play Again</button>
+      </div>
+
+      <!-- Pause Menu -->
+      <div id="pause-menu">
+        <h2>Paused</h2>
+        <div class="controls-list">
+          <div class="control-row">
+            <span class="key">WASD / Arrows</span>
+            <span class="action">Move</span>
+          </div>
+          <div class="control-row">
+            <span class="key">Mouse</span>
+            <span class="action">Look around</span>
+          </div>
+          <div class="control-row">
+            <span class="key">Shift</span>
+            <span class="action">Sprint</span>
+          </div>
+          <div class="control-row">
+            <span class="key">Space</span>
+            <span class="action">Jump</span>
+          </div>
+          <div class="control-row">
+            <span class="key">M</span>
+            <span class="action">Mute audio</span>
+          </div>
+          <div class="control-row">
+            <span class="key">Esc</span>
+            <span class="action">Pause / Resume</span>
+          </div>
+        </div>
+        <p class="resume-prompt">Click to Resume</p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
