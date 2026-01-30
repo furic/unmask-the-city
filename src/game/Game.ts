@@ -139,8 +139,8 @@ export class Game {
     // City
     this.city = new City(this.scene, this.settings.citySize, this.fogOfWar, this.settings.buildingDensity);
 
-    // Fog Particles
-    this.fogParticles = new FogParticles(this.scene, this.settings.citySize, 400);
+    // Fog Particles (reduced count for performance)
+    this.fogParticles = new FogParticles(this.scene, this.settings.citySize, 200);
 
     // Audio
     this.audioManager = new AudioManager();

@@ -307,8 +307,8 @@ export class City {
           hasWaterTower,
         });
 
-        // Add neon signs to some box buildings (20% chance)
-        if (type === 'box' && height > 25 && Math.random() < 0.2) {
+        // Add neon signs to some box buildings (10% chance for performance)
+        if (type === 'box' && height > 25 && Math.random() < 0.1) {
           const signHeight = 3 + Math.random() * 4;
           const signWidth = width * (0.3 + Math.random() * 0.4);
           const signY = height * (0.3 + Math.random() * 0.5);
@@ -367,7 +367,7 @@ export class City {
           return dx < b.width / 2 + 3 && dz < b.depth / 2 + 3;
         });
 
-        if (!tooCloseToBuilding && Math.random() < 0.3) {
+        if (!tooCloseToBuilding && Math.random() < 0.15) {
           this.streetLights.push({
             position: new THREE.Vector3(x, 0, z),
           });
@@ -702,9 +702,9 @@ export class City {
         matrix.multiplyMatrices(posMatrix, scaleMatrix);
         this.streetLightBulbMeshes!.setMatrixAt(i, matrix);
 
-        // Add actual point light (but limit to avoid performance issues)
-        if (i < 50) {
-          const pointLight = new THREE.PointLight(0xffffaa, 0.5, 25);
+        // Add actual point light (limit to 15 for performance)
+        if (i < 15) {
+          const pointLight = new THREE.PointLight(0xffffaa, 0.4, 20);
           pointLight.position.set(light.position.x, streetLightHeight + 0.3, light.position.z);
           this.streetLights3D.push(pointLight);
           this.scene.add(pointLight);
@@ -717,7 +717,7 @@ export class City {
       this.scene.add(this.streetLightBulbMeshes);
     }
 
-    // Create neon signs
+    // Create neon signs (no PointLights - MeshBasicMaterial already appears to glow)
     this.neonSigns.forEach((sign) => {
       const signGeometry = new THREE.PlaneGeometry(sign.width, sign.height);
       const signMaterial = new THREE.MeshBasicMaterial({
@@ -731,11 +731,6 @@ export class City {
       signMesh.rotation.y = sign.rotation;
       this.neonSignMeshes.push(signMesh);
       this.scene.add(signMesh);
-
-      // Add glow light for each neon sign
-      const signLight = new THREE.PointLight(sign.color, 0.3, 15);
-      signLight.position.copy(sign.position);
-      this.scene.add(signLight);
     });
 
     // Create central landmark tower (visible from anywhere for navigation)
@@ -764,8 +759,8 @@ export class City {
     beaconMesh.position.y = towerHeight + towerRadius * 0.4;
     this.landmarkTower.add(beaconMesh);
 
-    // Beacon light
-    const beaconLight = new THREE.PointLight(0x00ffaa, 2, 100);
+    // Beacon light (lower intensity for performance)
+    const beaconLight = new THREE.PointLight(0x00ffaa, 1, 60);
     beaconLight.position.y = towerHeight + towerRadius * 0.4;
     this.landmarkTower.add(beaconLight);
 

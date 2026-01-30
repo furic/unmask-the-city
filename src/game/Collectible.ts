@@ -108,10 +108,7 @@ export class Collectible {
     this.glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
     this.glowMesh.position.copy(position);
 
-    // Add point light
-    const light = new THREE.PointLight(0x00ffaa, 1, 15);
-    light.position.set(0, 0, 0);
-    this.mesh.add(light);
+    // Note: Removed PointLight for performance - emissive material + bloom provides glow effect
 
     // Particle system setup
     this.particleGeometry = new THREE.SphereGeometry(0.15, 8, 8);

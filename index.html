@@ -355,43 +355,48 @@
 
       /* Leaderboard */
       .leaderboard {
-        position: absolute;
-        right: 60px;
-        top: 50%;
-        transform: translateY(-50%);
-        background: rgba(0, 0, 0, 0.85);
-        padding: 24px 32px;
+        background: rgba(0, 0, 0, 0.6);
+        padding: 20px 24px;
         border-radius: 12px;
         backdrop-filter: blur(10px);
         border: 1px solid rgba(255, 255, 255, 0.2);
-        min-width: 320px;
+        max-width: 400px;
+        margin: 30px auto 20px;
         color: white;
       }
 
       .leaderboard h3 {
-        font-size: 20px;
+        font-size: 16px;
         font-weight: 400;
-        letter-spacing: 3px;
-        margin-bottom: 18px;
+        letter-spacing: 2px;
+        margin-bottom: 15px;
         text-align: center;
         color: #4ade80;
+        text-transform: uppercase;
       }
 
       .leaderboard-list {
-        font-size: 15px;
-        line-height: 1.8;
+        font-size: 14px;
+        line-height: 1.6;
       }
 
       .leaderboard-entry {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 10px 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       }
 
       .leaderboard-entry:last-child {
         border-bottom: none;
+      }
+
+      .leaderboard-rank {
+        color: #4ade80;
+        font-weight: 700;
+        width: 30px;
+        font-size: 15px;
       }
 
       .leaderboard-difficulty {
@@ -412,18 +417,18 @@
         flex: 1;
         display: flex;
         flex-direction: column;
-        gap: 2px;
+        gap: 3px;
       }
 
       .leaderboard-score {
         font-weight: 600;
         color: white;
-        font-size: 18px;
+        font-size: 16px;
       }
 
       .leaderboard-details {
-        font-size: 13px;
-        color: rgba(255, 255, 255, 0.75);
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.8);
       }
 
       .leaderboard-empty {
