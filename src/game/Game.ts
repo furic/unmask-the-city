@@ -72,6 +72,7 @@ export class Game {
   private themeManager!: ThemeManager;
   private ambientLight!: THREE.AmbientLight;
   private sunLight!: THREE.DirectionalLight;
+  private torchLight!: THREE.SpotLight;
   private ground!: THREE.Mesh;
   private themeNames = Object.keys(THEMES);
   private currentThemeIndex = 0;
@@ -228,6 +229,15 @@ export class Game {
     // Hemisphere light for better ambient
     const hemi = new THREE.HemisphereLight(0x87ceeb, 0x3a3a3a, 0.4);
     this.scene.add(hemi);
+
+    // Torch light (for night theme)
+    this.torchLight = new THREE.SpotLight(0xffffee, 1.5, 50, Math.PI / 6, 0.3, 1);
+    this.torchLight.position.set(0, 0, 0);
+    this.torchLight.castShadow = false; // Disable shadows for performance
+    this.camera.add(this.torchLight);
+    this.camera.add(this.torchLight.target);
+    this.torchLight.target.position.set(0, 0, -10); // Point forward
+    this.torchLight.visible = false; // Start disabled
 
     // Initialize theme manager
     this.themeManager = new ThemeManager(this.renderer, this.scene);
@@ -409,6 +419,9 @@ export class Game {
     else if (currentTheme === 'dusk') nightAmount = 0.3;
 
     this.city.updateFogUniforms(playerPos, nightAmount);
+
+    // Enable torch light for dark themes
+    this.torchLight.visible = nightAmount > 0.5;
 
     // Check corruption damage - drain stamina in corrupted areas
     const corruption = this.fogOfWar.getCorruptionAt(playerPos.x, playerPos.z);

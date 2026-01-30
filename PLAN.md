@@ -163,7 +163,7 @@ function placeCollectibles(city: City, count: number): Vector3[] {
 ```
 
 - [x] Ensure collectibles are reachable
-- [ ] Minimum distance between collectibles
+- [x] Minimum distance between collectibles (40 units)
 - [x] At least one near spawn, others distributed
 
 ### 5.3 Collection Logic
@@ -204,7 +204,7 @@ function placeCollectibles(city: City, count: number): Vector3[] {
 - [x] Title screen (click to start)
 - [x] Playing state
 - [x] Win screen (show stats, play again)
-- [ ] Pause menu (optional)
+- [x] Pause menu (optional) - shows on ESC / pointer lock lost
 
 ### 6.3 Score System
 ```typescript
@@ -298,19 +298,19 @@ material.onBeforeCompile = (shader) => {
 ### 8.1 Building Variety & Props (Easy - 30-45 min)
 
 **Diverse Building Shapes**
-- [ ] Add cylinder buildings (towers) - Use `CylinderGeometry`
-- [ ] Add pyramids (peaked roofs) - Use `ConeGeometry` on top of boxes
+- [x] Add cylinder buildings (towers) - Use `CylinderGeometry`
+- [x] Add pyramids (peaked roofs) - Use `ConeGeometry` on top of boxes
 - [ ] Add L-shaped buildings - Combine two boxes
-- [ ] Vary building types by distance from center:
+- [x] Vary building types by distance from center:
   - City center: Tall cylinders (skyscrapers)
   - Mid-range: Box buildings (current style)
   - Outer areas: Lower, wider buildings
 
 **Building Details** (Use additional InstancedMesh or regular meshes)
-- [ ] Rooftop antennas - Thin cylinders on tall buildings (10% chance)
-- [ ] Water towers - Small cylinders on flat roofs (5% chance)
-- [ ] Neon signs - Glowing rectangles on building sides (emissive material)
-- [ ] Street lights - Point lights along paths, turn on at night
+- [x] Rooftop antennas - Thin cylinders on tall buildings (10% chance)
+- [x] Water towers - Small cylinders on flat roofs (5% chance)
+- [x] Neon signs - Glowing rectangles on building sides (emissive material)
+- [x] Street lights - Point lights along paths, turn on at night
 
 **Implementation Notes:**
 - Create separate InstancedMesh for each geometry type
@@ -321,10 +321,10 @@ material.onBeforeCompile = (shader) => {
 ### 8.2 Auto Day/Night Cycle (Easy - 20 min)
 
 **Replace Manual Theme Cycling**
-- [ ] Remove T key theme toggle
-- [ ] Add automatic theme transition based on game time
-- [ ] Cycle: day → dusk → night → neon → repeat (every 90-120 seconds)
-- [ ] Update pause menu to remove T key control
+- [x] Remove T key theme toggle
+- [x] Add automatic theme transition based on game time
+- [x] Cycle: day → dusk → night → neon → repeat (every 90-120 seconds)
+- [x] Update pause menu to remove T key control
 
 **Night Vision / Torch Effect**
 - [ ] Add SpotLight attached to camera (night theme only)
@@ -395,23 +395,23 @@ gl_FragColor = vec4(mix(waterColor, vec3(0.8), foam), 0.7);
 - [ ] Visual: Dark shadowy figures, particle-based
 
 **Option C: Time Pressure (Easiest)**
-- [ ] Add "fog corruption" mechanic
-- [ ] Unexplored areas slowly become "corrupted" (darker fog)
-- [ ] Corrupted areas drain stamina when entered
-- [ ] Must explore before corruption spreads
-- [ ] Visual: Fog color shifts to red in corrupted zones
+- [x] Add "fog corruption" mechanic
+- [x] Unexplored areas slowly become "corrupted" (darker fog)
+- [x] Corrupted areas drain stamina when entered
+- [x] Must explore before corruption spreads
+- [x] Visual: Fog color shifts to red in corrupted zones
 
-**Recommended:** Option C (time pressure) - fits theme, no AI needed
+**Recommended:** Option C (time pressure) - fits theme, no AI needed - IMPLEMENTED
 
 ### 8.5 Jump Ability (Easy - 15 min)
 
-- [ ] Add Space key as jump (update controls, remove "Interact" text)
-- [ ] Jump velocity: 8 units/sec upward
-- [ ] Gravity: -20 units/sec²
-- [ ] Can't jump while in air (isGrounded check)
-- [ ] Costs 10 stamina per jump
-- [ ] Allows hopping over low obstacles/debris
-- [ ] Update Player.ts with vertical velocity
+- [x] Add Space key as jump (update controls, remove "Interact" text)
+- [x] Jump velocity: 8 units/sec upward
+- [x] Gravity: -20 units/sec²
+- [x] Can't jump while in air (isGrounded check)
+- [x] Costs 10 stamina per jump
+- [x] Allows hopping over low obstacles/debris
+- [x] Update Player.ts with vertical velocity
 
 **Implementation:**
 ```typescript
@@ -434,33 +434,33 @@ if (newPosition.y <= PLAYER_HEIGHT) {
 ### 8.6 Fragment Variety (Easy - 20 min)
 
 **Fragment Types:**
-- [ ] Common fragments (green, current): 1000 points
-- [ ] Rare fragments (gold/yellow): 2000 points
-- [ ] Hidden fragments (purple): Only visible within 15 units, 1500 points
+- [x] Common fragments (green, current): 1000 points
+- [x] Rare fragments (gold/yellow): 2000 points
+- [x] Hidden fragments (purple): Only visible within 15 units, 1500 points
 
 **Spawn Distribution:**
-- 70% common, 20% rare, 10% hidden
-- Update `Collectible.ts` constructor to accept type parameter
-- Different colors, emissive intensities, and particle colors
-- Update score calculation to use fragment values
+- [x] 70% common, 20% rare, 10% hidden
+- [x] Update `Collectible.ts` constructor to accept type parameter
+- [x] Different colors, emissive intensities, and particle colors
+- [x] Update score calculation to use fragment values
 
 **Visual Differences:**
-- Common: Green (#00ffaa) - current
-- Rare: Gold (#ffaa00) - larger, brighter glow
-- Hidden: Purple (#aa00ff) - faint glow, only brighten when close
+- [x] Common: Green (#00ffaa) - current
+- [x] Rare: Gold (#ffaa00) - larger, brighter glow
+- [x] Hidden: Purple (#aa00ff) - faint glow, only brighten when close
 
 ### 8.7 Environmental Props (Medium - 45 min)
 
 **Parks & Open Spaces**
-- [ ] Designate 5-10 "park" areas (no buildings)
-- [ ] Add trees: Cylinder trunk + sphere crown
-- [ ] Use InstancedMesh for trees (100-200 trees)
-- [ ] Parks restore stamina 2x faster
+- [x] Designate 5-10 "park" areas (no buildings)
+- [x] Add trees: Cylinder trunk + sphere crown
+- [x] Use InstancedMesh for trees (100-200 trees)
+- [x] Parks restore stamina 2x faster
 - [ ] Fragments often spawn in parks (easier to see)
 
 **Street Furniture**
 - [ ] Benches - Small boxes in park areas
-- [ ] Lamp posts - Cylinders with PointLight on top
+- [x] Lamp posts - Cylinders with PointLight on top
 - [ ] Trash bins - Small cylinders
 - [ ] Billboards - Tall rectangles with emissive texture
 
@@ -483,7 +483,7 @@ if (newPosition.y <= PLAYER_HEIGHT) {
 ### 8.9 Atmospheric Improvements (Easy - 30 min)
 
 **Sound Design:**
-- [ ] Fragment proximity hum - Quiet beep that gets louder/faster when close
+- [x] Fragment proximity hum - Quiet beep that gets louder/faster when close
 - [ ] Distance-based wind - Wind sound increases in open areas
 - [ ] Echo in tight spaces - Reverb near buildings
 - [ ] Night creature sounds - Ambient creepy sounds at night
@@ -491,11 +491,11 @@ if (newPosition.y <= PLAYER_HEIGHT) {
 **Visual Polish:**
 - [ ] Fragment trails - Particle stream drifting toward player when very close
 - [ ] Visited path glow - Ground slightly glows where you've walked (fades over time)
-- [ ] Building windows light up at night - Random windows become emissive
+- [x] Building windows light up at night - Random windows become emissive
 - [ ] Birds/bats - Simple flying creatures (boxes with flapping animation)
 
 **Weather Effects:**
-- [ ] Rain - Particle system, reduces visibility slightly
+- [x] Rain - Particle system, reduces visibility slightly
 - [ ] Snow - White particles, leaves white patches on ground
 - [ ] Fog density changes - Thicker fog in certain areas randomly
 
@@ -551,21 +551,21 @@ Create a dramatic, thematic ending that visualizes the "unmasking" of the city w
 ### 9.1 Trigger & Initial Impact (0-0.5s)
 
 **Final Fragment Collection:**
-- [ ] Detect final fragment collection in `Game.ts`
-- [ ] Trigger `startWinSequence()` instead of immediate win screen
+- [x] Detect final fragment collection in `Game.ts`
+- [x] Trigger `startWinSequence()` instead of immediate win screen
 - [ ] Lock player controls (freeze movement)
-- [ ] **Intense screen shake** (2x normal collection shake)
-- [ ] **Bright flash** effect (white overlay, fade out quickly)
-- [ ] **Sound**: Triumphant chord/arpeggio
+- [x] **Intense screen shake** (2x normal collection shake)
+- [x] **Bright flash** effect (white overlay, fade out quickly)
+- [x] **Sound**: Triumphant chord/arpeggio
 
 ### 9.2 Fog Vanishes - "Unmask" Effect (0.5-3.0s)
 
 **Expanding Wave Clear:**
-- [ ] Create `clearAllFog()` method in `FogOfWar.ts`
-- [ ] Animate clearing in expanding circular wave from player
-- [ ] Use easing: start slow, accelerate, then slow at edges
-- [ ] Duration: 2.5 seconds total
-- [ ] Update texture every frame during animation
+- [x] Create `clearAllFog()` method in `FogOfWar.ts`
+- [x] Animate clearing in expanding circular wave from player
+- [x] Use easing: start slow, accelerate, then slow at edges
+- [x] Duration: 2.5 seconds total
+- [x] Update texture every frame during animation
 
 **Implementation:**
 ```typescript
@@ -634,15 +634,15 @@ gl_FragColor.rgb += windowColor * windowEmit * 0.4;
 ### 9.4 Sky & Atmosphere Transform (1.5-4.0s)
 
 **Sky Color Transition:**
-- [ ] Animate scene fog color: `0xd4d4d8` → `0xffa563` (golden)
-- [ ] Animate clear color to match
-- [ ] Duration: 2 seconds
-- [ ] Smooth interpolation
+- [x] Animate scene fog color: `0xd4d4d8` → `0xffa563` (golden)
+- [x] Animate clear color to match
+- [x] Duration: 2 seconds
+- [x] Smooth interpolation
 
 **Lighting Changes:**
-- [ ] Sun intensity: 0.8 → 1.2 (50% brighter)
-- [ ] Sun color: white → warm orange `0xffa500`
-- [ ] Ambient light intensity: 0.6 → 0.9
+- [x] Sun intensity: 0.8 → 1.2 (50% brighter)
+- [x] Sun color: white → warm orange `0xffa500`
+- [x] Ambient light intensity: 0.6 → 0.9
 - [ ] Hemisphere sky color: blue → warm orange
 
 **Implementation:**
@@ -799,10 +799,10 @@ export class Firework {
 ### 9.6 Camera Animation (2.0-5.0s)
 
 **Cinematic Movement:**
-- [ ] Store original camera position and rotation
-- [ ] Target: Move back 20%, tilt up 10°
-- [ ] Smooth interpolation (ease-in-out)
-- [ ] Duration: 3 seconds
+- [x] Store original camera position and rotation
+- [x] Target: Move back 20%, tilt up 10° (simplified: drift upward)
+- [x] Smooth interpolation (ease-in-out)
+- [x] Duration: 3 seconds
 - [ ] Disable pointer lock during sequence
 
 **Implementation:**
@@ -1038,9 +1038,9 @@ private animate(): void {
 
 1. **Multiplayer fog reveal** - See other players' explored areas
 2. **Procedural landmarks** - Special buildings that are objectives
-3. **Day/night cycle** - Fog behavior changes
+3. ~~**Day/night cycle** - Fog behavior changes~~ ✅ DONE (auto cycle)
 4. **Mobile support** - Touch controls
-5. **Leaderboard** - Submit scores online
+5. ~~**Leaderboard** - Submit scores online~~ ✅ DONE (local + global)
 
 ---
 
