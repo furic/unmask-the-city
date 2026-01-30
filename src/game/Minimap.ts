@@ -67,9 +67,9 @@ export class Minimap {
 
     for (let y = 0; y < this.SIZE; y++) {
       for (let x = 0; x < this.SIZE; x++) {
-        // Sample fog texture (flip Y since canvas Y is inverted)
-        const fogX = Math.floor(x * scale);
-        const fogY = Math.floor((this.SIZE - 1 - y) * scale);
+        // Sample fog texture (flip both X and Y to match world orientation)
+        const fogX = Math.floor((this.SIZE - 1 - x) * scale); // Flip X
+        const fogY = Math.floor((this.SIZE - 1 - y) * scale); // Flip Y
         const fogIndex = fogY * this.resolution + fogX;
         const fogValue = fogData[fogIndex];
 
@@ -94,7 +94,7 @@ export class Minimap {
 
     // Convert world position to minimap position
     const worldToMinimap = (worldX: number, worldZ: number): [number, number] => {
-      const x = ((worldX + halfWorld) / this.worldSize) * this.SIZE;
+      const x = ((halfWorld - worldX) / this.worldSize) * this.SIZE; // Flip X for correct orientation
       const y = ((halfWorld - worldZ) / this.worldSize) * this.SIZE; // Flip Z
       return [x, y];
     };
