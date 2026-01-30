@@ -104,13 +104,17 @@ export class Guard {
       });
       const cone = new THREE.Mesh(coneGeometry, coneMaterial);
 
-      // Position cone in front of guard
+      // Position cone extending from guard
       cone.position.copy(guard.position);
       cone.position.y = 2;
-      cone.rotation.x = -Math.PI / 2; // Point horizontally (flipped to correct direction)
-      cone.rotation.z = guard.rotation + Math.PI / 2;
 
-      // Move cone forward so tip is at guard position
+      // Rotate cone to point in guard's facing direction
+      // Default: tip points up (+Y), base at bottom
+      // Rotate Z by -90° to lay on side (tip points along +X)
+      // Then rotate Y to face guard's direction
+      cone.rotation.set(-Math.PI / 2, guard.rotation - Math.PI / 2, 0);
+
+      // Move cone forward so tip starts at guard
       const forwardX = Math.sin(guard.rotation) * (coneLength / 2);
       const forwardZ = Math.cos(guard.rotation) * (coneLength / 2);
       cone.position.x += forwardX;
