@@ -6,7 +6,7 @@ export class GlobalLeaderboardManager {
   private static readonly GIST_FILENAME = 'unmask-city-scores.json';
 
   // For writes, we'll use a serverless function
-  private static readonly API_ENDPOINT = '/api/submit-score'; // Vercel/Netlify function
+  private static readonly API_ENDPOINT = 'https://unmask-the-city.vercel.app/api/submit-score';
 
   /**
    * Fetch global leaderboard from public gist

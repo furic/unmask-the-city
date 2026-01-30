@@ -121,6 +121,7 @@ export class City {
         )
       };
       shader.uniforms.playerPos = { value: new THREE.Vector3() };
+      shader.uniforms.nightAmount = { value: 0.0 }; // 0 = day, 1 = full night
 
       // Add varying for world position
       shader.vertexShader = shader.vertexShader.replace(
@@ -148,7 +149,13 @@ export class City {
         uniform sampler2D corruptionMap;
         uniform vec4 cityBounds;
         uniform vec3 playerPos;
+        uniform float nightAmount;
         varying vec3 vWorldPos;
+
+        // Simple hash function for pseudo-random window lighting
+        float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+        }
         `
       );
 
@@ -161,14 +168,34 @@ export class City {
         float floorY = mod(vWorldPos.y, floorHeight);
         float floorLine = smoothstep(0.0, lineWidth, floorY) * (1.0 - smoothstep(floorHeight - lineWidth, floorHeight, floorY));
 
-        // Window pattern (darker rectangles)
-        float windowSpacing = 3.0;
-        float windowWidth = 0.6;
-        float windowX = mod(vWorldPos.x + vWorldPos.z, windowSpacing);
-        float windowPattern = step(windowWidth, windowX);
+        // Window grid
+        float windowSpacingX = 3.0;
+        float windowSpacingY = 4.0;
+        float windowWidth = 1.8;
+        float windowHeight = 2.5;
 
-        // Combine for AO-like effect (darker in window areas, lighter on edges)
-        float aoEffect = mix(0.85, 1.0, floorLine * 0.5 + windowPattern * 0.5);
+        // Calculate window cell
+        vec2 windowCell = floor(vec2(vWorldPos.x + vWorldPos.z, vWorldPos.y) / vec2(windowSpacingX, windowSpacingY));
+        vec2 windowUV = mod(vec2(vWorldPos.x + vWorldPos.z, vWorldPos.y), vec2(windowSpacingX, windowSpacingY));
+
+        // Check if we're inside a window
+        float inWindowX = step(0.5, windowUV.x) * step(windowUV.x, windowWidth + 0.5);
+        float inWindowY = step(0.7, windowUV.y) * step(windowUV.y, windowHeight + 0.7);
+        float inWindow = inWindowX * inWindowY;
+
+        // Random window lighting (some windows are lit at night)
+        float windowRand = hash(windowCell);
+        float windowLit = step(0.6, windowRand) * inWindow * nightAmount;
+
+        // Window light colors (warm yellow/orange)
+        vec3 windowLightColor = mix(vec3(1.0, 0.9, 0.6), vec3(1.0, 0.7, 0.4), windowRand);
+
+        // Apply window lighting
+        gl_FragColor.rgb = mix(gl_FragColor.rgb, windowLightColor, windowLit * 0.8);
+
+        // AO effect for non-lit windows
+        float windowPattern = 1.0 - inWindow * (1.0 - windowLit);
+        float aoEffect = mix(0.8, 1.0, floorLine * 0.5 + windowPattern * 0.3);
         gl_FragColor.rgb *= aoEffect;
 
         // Fog of war calculation
@@ -197,13 +224,14 @@ export class City {
     };
   }
 
-  updateFogUniforms(playerPos?: THREE.Vector3): void {
+  updateFogUniforms(playerPos?: THREE.Vector3, nightAmount = 0): void {
     const shader = (this.buildingMaterial as any).shader;
     if (shader) {
       shader.uniforms.fogMap.value = this.fogOfWar.getTexture();
       shader.uniforms.fogMap.value.needsUpdate = true;
       shader.uniforms.corruptionMap.value = this.fogOfWar.getCorruptionTexture();
       shader.uniforms.corruptionMap.value.needsUpdate = true;
+      shader.uniforms.nightAmount.value = nightAmount;
       if (playerPos) {
         shader.uniforms.playerPos.value.copy(playerPos);
       }

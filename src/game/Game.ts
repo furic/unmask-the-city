@@ -14,6 +14,7 @@ import { ThemeManager, THEMES } from './ThemeManager';
 import { AudioManager } from './AudioManager';
 import { HighScoreManager } from './HighScoreManager';
 import { GlobalLeaderboardManager } from './GlobalLeaderboardManager';
+import { Rain } from './Rain';
 
 // Difficulty settings interface
 export interface DifficultySettings {
@@ -85,6 +86,11 @@ export class Game {
   private shakeIntensity = 0;
   private shakeDuration = 0;
 
+  // Weather
+  private rain: Rain;
+  private weatherTimer = 0;
+  private isRaining = false;
+
   // Settings
   private settings: DifficultySettings;
   private difficulty: string;
@@ -141,6 +147,9 @@ export class Game {
 
     // Fog Particles (reduced count for performance)
     this.fogParticles = new FogParticles(this.scene, this.settings.citySize, 200);
+
+    // Rain
+    this.rain = new Rain(this.scene, this.settings.citySize, 2000);
 
     // Audio
     this.audioManager = new AudioManager();
@@ -373,7 +382,15 @@ export class Game {
     // Update fog of war
     this.fogOfWar.clearAt(playerPos.x, playerPos.z, this.settings.fogClearRadius);
     this.fogOfWar.updateCorruption(delta);
-    this.city.updateFogUniforms(playerPos);
+
+    // Calculate night amount based on current theme (night=1, neon=0.8, dusk=0.3, day=0)
+    const currentTheme = this.themeNames[this.currentThemeIndex];
+    let nightAmount = 0;
+    if (currentTheme === 'night') nightAmount = 1.0;
+    else if (currentTheme === 'neon') nightAmount = 0.8;
+    else if (currentTheme === 'dusk') nightAmount = 0.3;
+
+    this.city.updateFogUniforms(playerPos, nightAmount);
 
     // Check corruption damage - drain stamina in corrupted areas
     const corruption = this.fogOfWar.getCorruptionAt(playerPos.x, playerPos.z);
@@ -383,6 +400,21 @@ export class Game {
 
     // Update fog particles
     this.fogParticles.update(delta, playerPos);
+
+    // Update weather (rain)
+    this.weatherTimer += delta;
+    if (this.weatherTimer > 60) { // Check weather every 60 seconds
+      this.weatherTimer = 0;
+      // 30% chance of rain change, more likely at night
+      if (Math.random() < 0.3) {
+        this.isRaining = !this.isRaining;
+        this.rain.setActive(this.isRaining);
+        if (this.isRaining) {
+          this.rain.setIntensity(0.5 + Math.random() * 0.5);
+        }
+      }
+    }
+    this.rain.update(delta, playerPos);
 
     // Update theme transitions
     this.themeManager.update(delta);
