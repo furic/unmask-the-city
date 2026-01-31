@@ -342,7 +342,7 @@ export class WinSequence {
     return true;
   }
 
-  private cleanup(): void {
+  cleanup(): void {
     // Stop fireworks
     this.fireworks.stop();
 

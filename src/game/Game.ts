@@ -401,12 +401,32 @@ export class Game {
     // Reset game state
     this.gameTime = 0;
     this.fragmentsCollected = 0;
+    this.totalPoints = 0;
     this.winSequenceTriggered = false;
+
+    // Reset world
     this.fogOfWar.reset();
     this.city.regenerate();
     this.spawnCollectibles();
+
+    // Reset player
     this.player.reset();
     this.camera.position.set(0, 5, 0);
+    this.camera.rotation.set(0, 0, 0);
+
+    // Reset theme to default (day)
+    this.currentThemeIndex = 0;
+    this.themeManager.setTheme(this.themeNames[0]);
+
+    // Clean up win sequence effects (fireworks, beams, sky changes)
+    if (this.winSequence) {
+      this.winSequence.cleanup();
+    }
+
+    // Reset weather
+    this.isRaining = false;
+    this.weatherTimer = 0;
+
     this.updateUI();
     this.start();
   }
