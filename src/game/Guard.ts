@@ -85,17 +85,9 @@ export class Guard {
       bodyGroup.add(eye1);
       bodyGroup.add(eye2);
 
-      bodyGroup.position.copy(guard.position);
-      bodyGroup.rotation.y = guard.rotation;
-
-      this.guardMeshes.push(bodyGroup as unknown as THREE.Mesh);
-      this.scene.add(bodyGroup);
-
-      // Vision cone (transparent red) - simpler approach
+      // Vision cone (transparent red) - add to bodyGroup so they move together
       const coneLength = guard.visionDistance;
       const coneRadius = Math.tan(guard.visionAngle) * coneLength;
-
-      // Create cone with tip at origin pointing down (-Y)
       const coneGeometry = new THREE.ConeGeometry(coneRadius, coneLength, 16, 1, true);
       const coneMaterial = new THREE.MeshBasicMaterial({
         color: 0xff0000,
@@ -106,24 +98,22 @@ export class Guard {
       });
       const cone = new THREE.Mesh(coneGeometry, coneMaterial);
 
-      // Rotate cone to point along +Z axis (forward)
-      cone.rotation.x = Math.PI / 2; // Rotate to horizontal
+      // Rotate cone to point forward (along local +Z of the group)
+      cone.rotation.x = Math.PI / 2;
 
-      // Put cone in a group for easier positioning
-      const coneGroup = new THREE.Group();
-      // After rotation, tip is at -Z, move it to origin
-      cone.position.z = -coneLength / 2;
-      coneGroup.add(cone);
+      // Position cone so tip is near guard body, extending forward
+      cone.position.set(0, 1.5, coneLength / 2); // Y at body center, Z extending forward
 
-      // Position group at guard
-      coneGroup.position.copy(guard.position);
-      coneGroup.position.y = 2;
+      // Add cone to the bodyGroup so they rotate together
+      bodyGroup.add(cone);
+      this.visionConeMeshes.push(cone);
 
-      // Rotate group to face guard's direction
-      coneGroup.rotation.y = guard.rotation;
+      // Position and orient the entire guard (body + cone) together
+      bodyGroup.position.copy(guard.position);
+      bodyGroup.rotation.y = guard.rotation;
 
-      this.visionConeMeshes.push(coneGroup as unknown as THREE.Mesh);
-      this.scene.add(coneGroup);
+      this.guardMeshes.push(bodyGroup as unknown as THREE.Mesh);
+      this.scene.add(bodyGroup);
     });
   }
 
