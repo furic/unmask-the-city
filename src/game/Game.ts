@@ -154,8 +154,12 @@ export class Game {
     // Minimap
     this.minimap = new Minimap(this.fogOfWar, this.settings.citySize);
 
+    // Create sunLight early (needed by Water for reflections)
+    this.sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    this.sunLight.position.set(100, 200, 50);
+
     // Water system (create BEFORE city so buildings can avoid water)
-    this.water = new Water(this.scene, this.settings.citySize);
+    this.water = new Water(this.scene, this.settings.citySize, this.sunLight);
 
     // City (pass water so it can avoid placing buildings in water)
     this.city = new City(this.scene, this.settings.citySize, this.fogOfWar, this.settings.buildingDensity, this.water);
@@ -225,9 +229,7 @@ export class Game {
     this.ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     this.scene.add(this.ambientLight);
 
-    // Directional light (sun)
-    this.sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    this.sunLight.position.set(100, 200, 50);
+    // Directional light (sun) - already created in constructor for Water
     this.sunLight.castShadow = true;
     this.sunLight.shadow.mapSize.width = 2048;
     this.sunLight.shadow.mapSize.height = 2048;
