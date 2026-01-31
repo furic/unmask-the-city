@@ -1,6 +1,16 @@
 # Unmask the City
 
+![Feature Image](feature-image.png)
+
+[![Three.js](https://img.shields.io/badge/Three.js-v0.170.0-black?logo=threedotjs)](https://threejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7.0-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-6.0.0-646CFF?logo=vite)](https://vitejs.dev/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Global Game Jam](https://img.shields.io/badge/Global_Game_Jam-2026-orange)](https://globalgamejam.org/)
+
 > A 3D exploration game for Global Game Jam 2026 | Theme: **Mask**
+
+**[🎮 Play the Game](https://furic.github.io/unmask-the-city/)** | [🎲 GGJ Page](https://globalgamejam.org/games/2026/unmask-city-4) | [📖 Technical Docs](TECH_STACK.md) | [🗺️ Development Plan](PLAN.md)
 
 ## Concept
 
