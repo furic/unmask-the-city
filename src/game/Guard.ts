@@ -185,14 +185,18 @@ export class Guard {
     }
 
     // Update vision cone colors based on alert level
-    this.visionConeMeshes.forEach((cone) => {
-      const mat = cone.material as THREE.MeshBasicMaterial;
-      // Interpolate from red (calm) to bright red (alert)
-      mat.opacity = 0.15 + this.alertLevel * 0.25;
-      if (this.alertLevel > 0.5) {
-        mat.color.setHex(0xff0000);
-      } else {
-        mat.color.setHex(0xff3333);
+    this.visionConeMeshes.forEach((coneGroup) => {
+      // Get the cone mesh from the group (it's the first child)
+      const cone = (coneGroup as unknown as THREE.Group).children[0] as THREE.Mesh;
+      if (cone && cone.material) {
+        const mat = cone.material as THREE.MeshBasicMaterial;
+        // Interpolate from red (calm) to bright red (alert)
+        mat.opacity = 0.15 + this.alertLevel * 0.25;
+        if (this.alertLevel > 0.5) {
+          mat.color.setHex(0xff0000);
+        } else {
+          mat.color.setHex(0xff3333);
+        }
       }
     });
 
