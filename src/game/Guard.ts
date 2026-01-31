@@ -91,9 +91,11 @@ export class Guard {
       this.guardMeshes.push(bodyGroup as unknown as THREE.Mesh);
       this.scene.add(bodyGroup);
 
-      // Vision cone (transparent red)
+      // Vision cone (transparent red) - simpler approach
       const coneLength = guard.visionDistance;
       const coneRadius = Math.tan(guard.visionAngle) * coneLength;
+
+      // Create cone with tip at origin pointing down (-Y)
       const coneGeometry = new THREE.ConeGeometry(coneRadius, coneLength, 16, 1, true);
       const coneMaterial = new THREE.MeshBasicMaterial({
         color: 0xff0000,
@@ -104,24 +106,24 @@ export class Guard {
       });
       const cone = new THREE.Mesh(coneGeometry, coneMaterial);
 
-      // Position and orient cone to extend from guard
-      // Start at guard position
-      cone.position.set(guard.position.x, 2, guard.position.z);
+      // Rotate cone to point along +Z axis (forward)
+      cone.rotation.x = -Math.PI / 2; // Tip points forward
 
-      // Tilt cone to horizontal (tip will point along -Z after this)
-      cone.rotation.x = Math.PI / 2;
+      // Put cone in a group for easier positioning
+      const coneGroup = new THREE.Group();
+      // Move cone so tip is at group origin
+      cone.position.z = coneLength / 2;
+      coneGroup.add(cone);
 
-      // Rotate around Y axis to face guard's direction
-      cone.rotation.y = guard.rotation;
+      // Position group at guard
+      coneGroup.position.copy(guard.position);
+      coneGroup.position.y = 2;
 
-      // Move cone forward so tip is at guard, base extends outward
-      const forwardX = Math.sin(guard.rotation) * (coneLength / 2);
-      const forwardZ = Math.cos(guard.rotation) * (coneLength / 2);
-      cone.position.x += forwardX;
-      cone.position.z += forwardZ;
+      // Rotate group to face guard's direction
+      coneGroup.rotation.y = guard.rotation;
 
-      this.visionConeMeshes.push(cone);
-      this.scene.add(cone);
+      this.visionConeMeshes.push(coneGroup as unknown as THREE.Mesh);
+      this.scene.add(coneGroup);
     });
   }
 
