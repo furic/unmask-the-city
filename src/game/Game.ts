@@ -593,7 +593,8 @@ export class Game {
   }
 
   private onWin(): void {
-    this.isRunning = false;
+    // Don't stop game loop - let fireworks and effects continue!
+    // this.isRunning = false;
     this.controls.unlock();
 
     const explored = this.fogOfWar.getExploredPercent();
