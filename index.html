@@ -250,12 +250,18 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.85);
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(5px);
         display: none;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         z-index: 100;
+        pointer-events: none;
+      }
+
+      #win-screen button {
+        pointer-events: auto;
       }
 
       #win-screen h1 {
