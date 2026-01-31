@@ -103,6 +103,13 @@ export class Game {
   private winSequence!: WinSequence;
   private winSequenceTriggered = false;
 
+  // Preview mode (for start screen)
+  private previewMode = false;
+  private previewTime = 0;
+  private previewCameraAngle = 0;
+  private previewCameraHeight = 80; // Higher to avoid tall buildings
+  private previewCameraRadius = 150; // Further out to avoid building clipping
+
   // Settings
   private settings: DifficultySettings;
   private difficulty: string;
@@ -427,8 +434,68 @@ export class Game {
     this.isRaining = false;
     this.weatherTimer = 0;
 
+    // Reset audio proximity to stop any proximity pings
+    this.audioManager.setFragmentProximity(Infinity);
+
     this.updateUI();
     this.start();
+  }
+
+  startPreview(): void {
+    this.previewMode = true;
+    this.previewTime = 0;
+    this.previewCameraAngle = 0;
+    this.isRunning = true;
+
+    // Clear fog entirely for preview to show building colors
+    this.fogOfWar.clearAll();
+
+    // Position camera at starting preview location
+    this.camera.position.set(
+      Math.cos(this.previewCameraAngle) * this.previewCameraRadius,
+      this.previewCameraHeight,
+      Math.sin(this.previewCameraAngle) * this.previewCameraRadius
+    );
+    this.camera.lookAt(0, 0, 0);
+
+    requestAnimationFrame(this.animate);
+  }
+
+  stopPreview(): void {
+    this.previewMode = false;
+    this.previewTime = 0;
+    // Stop the animation loop so a new game can take over
+    this.isRunning = false;
+  }
+
+  private updatePreview(delta: number): void {
+    this.previewTime += delta;
+
+    // Slow orbit around the city center
+    this.previewCameraAngle += delta * 0.1; // Rotation speed
+
+    // Gentle up-down movement
+    const heightOffset = Math.sin(this.previewTime * 0.3) * 8;
+
+    // Update camera position
+    this.camera.position.set(
+      Math.cos(this.previewCameraAngle) * this.previewCameraRadius,
+      this.previewCameraHeight + heightOffset,
+      Math.sin(this.previewCameraAngle) * this.previewCameraRadius
+    );
+
+    // Always look at city center, aiming slightly above ground
+    const lookTarget = new THREE.Vector3(0, 30, 0);
+    this.camera.lookAt(lookTarget);
+
+    // Update city fog shader uniforms with night mode for dramatic preview
+    this.city.updateFogUniforms(this.camera.position, 1.0);
+
+    // Update fog particles for atmospheric effect
+    this.fogParticles.update(delta, this.camera.position);
+
+    // Update water
+    this.water.update(delta);
   }
 
   private animate = (): void => {
@@ -437,6 +504,14 @@ export class Game {
     requestAnimationFrame(this.animate);
 
     const delta = this.clock.getDelta();
+
+    // Handle preview mode separately
+    if (this.previewMode) {
+      this.updatePreview(delta);
+      this.composer.render();
+      return;
+    }
+
     this.gameTime += delta;
 
     // Update player
@@ -717,5 +792,26 @@ export class Game {
     distanceEl.textContent = `${Math.round(nearestDist)}m`;
 
     return nearestDist;
+  }
+
+  dispose(): void {
+    // Stop the game loop
+    this.isRunning = false;
+
+    // Remove canvas from DOM
+    if (this.renderer.domElement.parentNode) {
+      this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
+    }
+
+    // Dispose renderer
+    this.renderer.dispose();
+
+    // Dispose composer
+    this.composer.dispose();
+
+    // Clean up win sequence if it exists
+    if (this.winSequence) {
+      this.winSequence.dispose();
+    }
   }
 }

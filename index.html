@@ -163,7 +163,8 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        background: rgba(10, 10, 20, 0.7);
+        backdrop-filter: blur(8px);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -178,27 +179,43 @@
         letter-spacing: 8px;
         margin-bottom: 10px;
         text-transform: uppercase;
+        text-shadow: 0 0 30px rgba(0, 0, 0, 0.8), 0 2px 10px rgba(0, 0, 0, 0.6);
       }
-      
+
       #start-screen .subtitle {
         font-size: 14px;
-        opacity: 0.6;
+        opacity: 0.8;
         letter-spacing: 4px;
         margin-bottom: 60px;
+        text-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
       }
-      
+
       #start-screen .prompt {
-        font-size: 18px;
-        opacity: 0.8;
+        font-size: 20px;
+        color: white;
+        opacity: 1;
         animation: pulse 2s ease-in-out infinite;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        background: rgba(0, 0, 0, 0.6);
+        padding: 16px 32px;
+        border-radius: 8px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
       }
-      
+
       #start-screen .controls {
         position: absolute;
         bottom: 40px;
-        font-size: 12px;
-        opacity: 0.4;
+        font-size: 13px;
+        color: white;
+        opacity: 1;
         letter-spacing: 1px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        background: rgba(0, 0, 0, 0.6);
+        padding: 12px 28px;
+        border-radius: 6px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
       }
 
       /* Difficulty selector */
@@ -233,9 +250,16 @@
       }
 
       .difficulty-info {
-        font-size: 12px;
-        opacity: 0.6;
+        font-size: 14px;
+        color: white;
+        opacity: 1;
         margin-top: 10px;
+        background: rgba(0, 0, 0, 0.6);
+        padding: 10px 24px;
+        border-radius: 6px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
       }
       
       @keyframes pulse {
@@ -506,12 +530,141 @@
         padding: 20px 0;
         font-size: 14px;
       }
+
+      /* Info Button */
+      #info-btn {
+        position: absolute;
+        top: 30px;
+        right: 30px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.6);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        font-size: 22px;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        backdrop-filter: blur(10px);
+        pointer-events: auto;
+      }
+
+      #info-btn:hover {
+        background: rgba(0, 0, 0, 0.8);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: scale(1.1);
+      }
+
+      /* Info Modal */
+      #info-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.9);
+        backdrop-filter: blur(12px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 200;
+        padding: 20px;
+      }
+
+      #info-modal.show {
+        display: flex;
+      }
+
+      .info-content {
+        max-width: 600px;
+        background: rgba(20, 20, 30, 0.95);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        padding: 40px;
+        position: relative;
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+
+      .info-close {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: 36px;
+        height: 36px;
+        border: none;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        font-size: 24px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+      }
+
+      .info-close:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .info-content h2 {
+        font-size: 32px;
+        margin-bottom: 24px;
+        color: #4ade80;
+        text-align: center;
+        font-weight: 300;
+        letter-spacing: 2px;
+      }
+
+      .info-content h3 {
+        font-size: 20px;
+        margin-top: 30px;
+        margin-bottom: 12px;
+        color: #4ade80;
+        font-weight: 400;
+      }
+
+      .info-content p {
+        line-height: 1.8;
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 16px;
+        font-size: 15px;
+      }
+
+      .info-content ul {
+        list-style: none;
+        padding: 0;
+        margin: 16px 0;
+      }
+
+      .info-content ul li {
+        padding: 8px 0;
+        padding-left: 24px;
+        position: relative;
+        color: rgba(255, 255, 255, 0.85);
+        line-height: 1.6;
+      }
+
+      .info-content ul li::before {
+        content: "▸";
+        position: absolute;
+        left: 0;
+        color: #4ade80;
+      }
     </style>
   </head>
   <body>
     <div id="game-container">
       <!-- Start Screen -->
       <div id="start-screen">
+        <!-- Info Button -->
+        <button id="info-btn" title="Game Info">?</button>
+
         <h1>Unmask the City</h1>
         <p class="subtitle">Global Game Jam 2026</p>
 
@@ -609,6 +762,42 @@
           </div>
         </div>
         <p class="resume-prompt">Click to Resume</p>
+      </div>
+
+      <!-- Info Modal -->
+      <div id="info-modal">
+        <div class="info-content">
+          <button class="info-close" id="info-close">×</button>
+
+          <h2>About the Game</h2>
+
+          <p><strong>The city has been consumed by a malevolent fog</strong>, its streets and buildings hidden beneath an impenetrable shroud of darkness. Once vibrant and alive, the metropolis now exists in a state of eerie silence, its true form concealed from the world.</p>
+
+          <p>You are the last hope. Ancient fragments of light, scattered throughout the city, hold the power to pierce through the evil fog and reveal what lies beneath. These luminous shards are the key to unmasking the city and restoring it to its former glory.</p>
+
+          <h3>Your Mission</h3>
+          <p>Navigate the fog-covered city and collect all the fragments of light in the shortest time possible. As you explore, the fog gradually lifts, revealing more of the city's secrets.</p>
+
+          <h3>How to Play</h3>
+          <ul>
+            <li><strong>Move:</strong> WASD or Arrow keys</li>
+            <li><strong>Look around:</strong> Mouse</li>
+            <li><strong>Sprint:</strong> Hold Shift (drains stamina)</li>
+            <li><strong>Jump:</strong> Space</li>
+            <li><strong>Mute audio:</strong> M</li>
+            <li><strong>Pause:</strong> Esc</li>
+          </ul>
+
+          <h3>Tips</h3>
+          <ul>
+            <li>Follow the compass arrow - it points to the nearest fragment</li>
+            <li>The beeping sound gets faster as you approach a fragment</li>
+            <li>Explore thoroughly to maximize your exploration percentage</li>
+            <li>Manage your stamina - sprinting drains it quickly</li>
+          </ul>
+
+          <p style="text-align: center; margin-top: 30px; opacity: 0.7;">Unmask the city. Restore the light.</p>
+        </div>
       </div>
     </div>
 

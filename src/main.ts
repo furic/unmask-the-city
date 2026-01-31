@@ -127,8 +127,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Initialize game immediately for preview mode
+  const settings = DIFFICULTIES[selectedDifficulty];
+  game = new Game(container, settings, selectedDifficulty);
+  game.startPreview();
+
   // Load and display leaderboard for default difficulty
   updateLeaderboard(selectedDifficulty);
+
+  // Info modal handlers
+  const infoBtn = document.getElementById('info-btn');
+  const infoModal = document.getElementById('info-modal');
+  const infoClose = document.getElementById('info-close');
+
+  if (infoBtn && infoModal && infoClose) {
+    infoBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Don't trigger start screen click
+      infoModal.classList.add('show');
+    });
+
+    infoClose.addEventListener('click', () => {
+      infoModal.classList.remove('show');
+    });
+
+    // Close modal when clicking outside content
+    infoModal.addEventListener('click', (e) => {
+      if (e.target === infoModal) {
+        infoModal.classList.remove('show');
+      }
+    });
+  }
 
   // Difficulty button handlers
   const difficultyBtns = document.querySelectorAll('.difficulty-btn');
@@ -154,6 +182,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Update leaderboard to show scores for selected difficulty
       updateLeaderboard(selectedDifficulty);
+
+      // Recreate game with new difficulty settings for preview
+      if (game) {
+        game.stopPreview();
+        game.dispose();
+      }
+      const newSettings = DIFFICULTIES[selectedDifficulty];
+      game = new Game(container, newSettings, selectedDifficulty);
+      game.startPreview();
     });
   });
 
@@ -169,10 +206,11 @@ document.addEventListener('DOMContentLoaded', () => {
       startScreen.classList.add('hidden');
       document.getElementById('hud')?.classList.remove('hidden');
 
-      // Initialize game with selected difficulty
-      const settings = DIFFICULTIES[selectedDifficulty];
-      game = new Game(container, settings, selectedDifficulty);
-      game.start();
+      // Stop preview and start actual game
+      if (game) {
+        game.stopPreview();
+        game.start();
+      }
     });
   }
 
@@ -181,12 +219,15 @@ document.addEventListener('DOMContentLoaded', () => {
   if (playAgainBtn) {
     playAgainBtn.addEventListener('click', () => {
       document.getElementById('win-screen')!.style.display = 'none';
+      document.getElementById('hud')?.classList.add('hidden');
       // Update leaderboard for current difficulty before restarting
       updateLeaderboard(selectedDifficulty);
       // Show start screen
       startScreen?.classList.remove('hidden');
       if (game) {
         game.restart();
+        // Start preview mode again
+        game.startPreview();
       }
     });
   }

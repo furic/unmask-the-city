@@ -66,6 +66,7 @@ export class City {
   private landmarkPyramid: THREE.Mesh | null = null;
   private landmarkDome: THREE.Mesh | null = null;
   private buildingMaterial: THREE.MeshStandardMaterial;
+  private compiledShaders: any[] = []; // Store all compiled shader instances
   private treeTrunkMaterial: THREE.MeshStandardMaterial;
   private treeCrownMaterial: THREE.MeshStandardMaterial;
   private streetLightPoleMaterial: THREE.MeshStandardMaterial;
@@ -229,22 +230,24 @@ export class City {
       );
 
       // Store shader reference for updates
-      (this.buildingMaterial as any).shader = shader;
+      this.compiledShaders.push(shader);
     };
   }
 
   updateFogUniforms(playerPos?: THREE.Vector3, nightAmount = 0): void {
-    const shader = (this.buildingMaterial as any).shader;
-    if (shader) {
-      shader.uniforms.fogMap.value = this.fogOfWar.getTexture();
-      shader.uniforms.fogMap.value.needsUpdate = true;
-      shader.uniforms.corruptionMap.value = this.fogOfWar.getCorruptionTexture();
-      shader.uniforms.corruptionMap.value.needsUpdate = true;
-      shader.uniforms.nightAmount.value = nightAmount;
-      if (playerPos) {
-        shader.uniforms.playerPos.value.copy(playerPos);
+    // Update all compiled shaders (box, cylinder, pyramid, etc.)
+    this.compiledShaders.forEach(shader => {
+      if (shader && shader.uniforms) {
+        shader.uniforms.fogMap.value = this.fogOfWar.getTexture();
+        shader.uniforms.fogMap.value.needsUpdate = true;
+        shader.uniforms.corruptionMap.value = this.fogOfWar.getCorruptionTexture();
+        shader.uniforms.corruptionMap.value.needsUpdate = true;
+        shader.uniforms.nightAmount.value = nightAmount;
+        if (playerPos) {
+          shader.uniforms.playerPos.value.copy(playerPos);
+        }
       }
-    }
+    });
   }
 
   generate(): void {

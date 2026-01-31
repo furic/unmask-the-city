@@ -15,12 +15,12 @@ interface Firework {
   particles: FireworkParticle[];
   explosionPos: THREE.Vector3;
   color: THREE.Color;
+  particleMesh: THREE.Points | null;
 }
 
 export class FireworksSystem {
   private scene: THREE.Scene;
   private fireworks: Firework[] = [];
-  private particleMeshes: THREE.Points[] = [];
   private isActive = false;
 
   constructor(scene: THREE.Scene) {
@@ -68,6 +68,7 @@ export class FireworksSystem {
       particles: [],
       explosionPos: new THREE.Vector3(),
       color,
+      particleMesh: null,
     };
 
     this.fireworks.push(firework);
@@ -141,7 +142,7 @@ export class FireworksSystem {
     });
 
     const points = new THREE.Points(geometry, material);
-    this.particleMeshes.push(points);
+    firework.particleMesh = points;
     this.scene.add(points);
   }
 
@@ -187,56 +188,60 @@ export class FireworksSystem {
     });
 
     // Update particle meshes
-    this.fireworks.forEach((firework, fwIndex) => {
-      if (firework.state === 'exploding') {
-        const meshIndex = this.fireworks.slice(0, fwIndex + 1)
-          .filter(f => f.state === 'exploding' || f.state === 'done').length - 1;
+    this.fireworks.forEach((firework) => {
+      if (firework.state === 'exploding' && firework.particleMesh) {
+        const points = firework.particleMesh;
+        const positions = points.geometry.attributes.position.array as Float32Array;
 
-        if (meshIndex >= 0 && meshIndex < this.particleMeshes.length) {
-          const points = this.particleMeshes[meshIndex];
-          const positions = points.geometry.attributes.position.array as Float32Array;
+        firework.particles.forEach((p, i) => {
+          positions[i * 3] = p.position.x;
+          positions[i * 3 + 1] = p.position.y;
+          positions[i * 3 + 2] = p.position.z;
+        });
 
-          firework.particles.forEach((p, i) => {
-            positions[i * 3] = p.position.x;
-            positions[i * 3 + 1] = p.position.y;
-            positions[i * 3 + 2] = p.position.z;
-          });
+        points.geometry.attributes.position.needsUpdate = true;
 
-          points.geometry.attributes.position.needsUpdate = true;
-
-          // Fade out
-          const avgLife = firework.particles.reduce((sum, p) => sum + p.life, 0) / firework.particles.length;
-          const avgMaxLife = firework.particles.reduce((sum, p) => sum + p.maxLife, 0) / firework.particles.length;
-          (points.material as THREE.PointsMaterial).opacity = Math.max(0, avgLife / avgMaxLife);
-        }
+        // Fade out
+        const avgLife = firework.particles.reduce((sum, p) => sum + p.life, 0) / firework.particles.length;
+        const avgMaxLife = firework.particles.reduce((sum, p) => sum + p.maxLife, 0) / firework.particles.length;
+        (points.material as THREE.PointsMaterial).opacity = Math.max(0, avgLife / avgMaxLife);
       }
     });
 
     // Clean up finished fireworks
-    this.fireworks = this.fireworks.filter(f => f.state !== 'done');
+    this.fireworks = this.fireworks.filter((f) => {
+      if (f.state === 'done') {
+        // Remove and dispose particle mesh
+        if (f.particleMesh) {
+          this.scene.remove(f.particleMesh);
+          f.particleMesh.geometry.dispose();
+          (f.particleMesh.material as THREE.Material).dispose();
+          f.particleMesh = null;
+        }
+        return false;
+      }
+      return true;
+    });
   }
 
   stop(): void {
     this.isActive = false;
 
-    // Clean up all rockets
+    // Clean up all fireworks (rockets and particle systems)
     this.fireworks.forEach((f) => {
       if (f.rocket) {
         this.scene.remove(f.rocket);
         f.rocket.geometry.dispose();
         (f.rocket.material as THREE.Material).dispose();
       }
-    });
-
-    // Clean up all particle systems
-    this.particleMeshes.forEach((p) => {
-      this.scene.remove(p);
-      p.geometry.dispose();
-      (p.material as THREE.Material).dispose();
+      if (f.particleMesh) {
+        this.scene.remove(f.particleMesh);
+        f.particleMesh.geometry.dispose();
+        (f.particleMesh.material as THREE.Material).dispose();
+      }
     });
 
     this.fireworks = [];
-    this.particleMeshes = [];
   }
 
   isFinished(): boolean {

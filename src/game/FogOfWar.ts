@@ -130,6 +130,14 @@ export class FogOfWar {
     this.corruptionTexture.needsUpdate = true;
   }
 
+  clearAll(): void {
+    this.data.fill(0); // 0 = fully cleared/explored
+    this.corruptionData.fill(0);
+    this.pixelsCleared = this.resolution * this.resolution;
+    this.texture.needsUpdate = true;
+    this.corruptionTexture.needsUpdate = true;
+  }
+
   /**
    * Check if a position is explored
    */
