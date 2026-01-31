@@ -331,7 +331,7 @@ material.onBeforeCompile = (shader) => {
 - [x] Cone angle: 45°, distance: 30 units
 - [x] Points in camera direction
 - [x] Enable only during night/neon themes
-- [ ] Fragments glow brighter at night (increase emissive intensity)
+- [x] Fragments glow brighter at night (increase emissive intensity)
 
 **Implementation:**
 ```typescript
@@ -456,12 +456,12 @@ if (newPosition.y <= PLAYER_HEIGHT) {
 - [x] Add trees: Cylinder trunk + sphere crown
 - [x] Use InstancedMesh for trees (100-200 trees)
 - [x] Parks restore stamina 2x faster
-- [ ] Fragments often spawn in parks (easier to see)
+- [x] Fragments often spawn in parks (easier to see)
 
 **Street Furniture**
-- [ ] Benches - Small boxes in park areas
+- [x] Benches - Small boxes in park areas
 - [x] Lamp posts - Cylinders with PointLight on top
-- [ ] Trash bins - Small cylinders
+- [x] Trash bins - Small cylinders
 - [ ] Billboards - Tall rectangles with emissive texture
 
 **Landmarks** (1-3 unique structures)
@@ -475,7 +475,7 @@ if (newPosition.y <= PLAYER_HEIGHT) {
 **Parkour Mechanics:**
 - [ ] Climb low buildings - If building height < 15 units, can walk up at reduced speed
 - [x] Dash ability - Double-tap WASD for quick burst (costs 20 stamina)
-- [ ] Slide - Hold Ctrl while sprinting to slide (faster, can't turn)
+- [x] Slide - Hold Ctrl while sprinting to slide (faster, can't turn)
 - [ ] Wallrun - Run along building sides briefly
 
 **Recommended for GGJ:** Just implement **Jump** - simplest, most impactful
@@ -484,8 +484,8 @@ if (newPosition.y <= PLAYER_HEIGHT) {
 
 **Sound Design:**
 - [x] Fragment proximity hum - Quiet beep that gets louder/faster when close
-- [ ] Distance-based wind - Wind sound increases in open areas
-- [ ] Echo in tight spaces - Reverb near buildings
+- [x] Distance-based wind - Wind sound increases in open areas
+- [x] Echo in tight spaces - Reverb near buildings
 - [ ] Night creature sounds - Ambient creepy sounds at night
 
 **Visual Polish:**
@@ -508,10 +508,10 @@ if (newPosition.y <= PLAYER_HEIGHT) {
 - [ ] Fragment clusters - 2-3 fragments close together, guarded by hazard
 
 **Bonuses:**
-- [ ] Speed bonus - Collect 2 fragments within 15 seconds = +500 points
-- [ ] Perfect exploration - Collect all fragments + 90% explored = +2000 points
-- [ ] No pause bonus - Complete without pausing = +1000 points
-- [ ] Time trials - Under 3 minutes on normal = +1500 points
+- [x] Speed bonus - Collect 2 fragments within 15 seconds = +500 points
+- [x] Perfect exploration - Collect all fragments + 90% explored = +2000 points
+- [x] No pause bonus - Complete without pausing = +1000 points
+- [x] Time trials - Under 3 minutes on normal = +1500 points
 
 ---
 
@@ -1041,6 +1041,160 @@ private animate(): void {
 3. ~~**Day/night cycle** - Fog behavior changes~~ ✅ DONE (auto cycle)
 4. **Mobile support** - Touch controls
 5. ~~**Leaderboard** - Submit scores online~~ ✅ DONE (local + global)
+
+---
+
+## Phase 10: Pre-GGJ Polish & Enhancements
+
+### 10.1 Visual Polish - Quick Wins (High Impact, Low Effort)
+
+**Building Improvements:**
+- [ ] District-based color variation (group nearby buildings by color theme)
+- [ ] Add more rooftop detail variety (helipads, gardens, solar panels)
+- [x] Subtle sway animation for tall skyscrapers (sin wave based on height)
+- [ ] Enhanced glow/bloom on lit windows at night
+- [ ] Building edge highlighting (rim lighting shader)
+
+**Tree Improvements:**
+- [x] Wind animation - gentle sway for tree crowns (vertex shader)
+- [ ] More varied tree sizes within parks (3-4 size tiers)
+- [ ] Better shadows under tree crowns (contact shadows)
+- [ ] Seasonal variation - different crown colors by park
+- [ ] Swaying branches (secondary animation layer)
+
+**Lighting:**
+- [ ] Dynamic shadow intensity based on time of day
+- [ ] Light rays through fog (volumetric spotlight cones)
+- [ ] Building corner edge lights (accent lighting)
+- [ ] Ground ambient occlusion near building bases
+
+### 10.2 Audio Polish
+
+**Footstep Variety:**
+- [x] Different sounds for surfaces (concrete, grass in parks, water)
+- [x] Vary pitch/volume based on speed (walking vs sprinting)
+- [x] Echo effect when near tall buildings
+
+**Ambient Sounds:**
+- [x] Subtle distant traffic hum
+- [x] Wind gusts intensity based on open space
+- [x] Water ambience near lakes/rivers
+- [x] Night creature sounds (crickets, distant owl)
+
+**Fragment Collection:**
+- [x] Milestone chimes (3/7, 5/7 collected)
+- [x] Different sound per fragment type (common, rare, hidden)
+- [ ] Spatial audio for fragments (louder when close, directional)
+
+### 10.3 Atmospheric Effects
+
+**Sky & Weather:**
+- [x] Animated clouds (scrolling texture or particle layer)
+- [x] Birds flying in formations during day
+- [x] Bats at night
+- [ ] Dynamic fog density (thicker in valleys, thinner on high ground)
+- [x] Lightning flashes during rain (random screen flash + thunder)
+
+**Particle Systems:**
+- [ ] Dust motes in sunlight shafts
+- [x] Leaves blowing in parks
+- [x] Steam from vents on buildings
+- [x] Ember particles in corrupted fog areas
+
+**Lighting Transitions:**
+- [x] Smoother theme transitions (cross-fade instead of instant)
+- [ ] Golden hour glow (special state between dusk/night)
+- [ ] Aurora effect in sky during neon theme
+- [ ] Moon with halo during night theme
+
+### 10.4 Collectible & Gameplay Polish
+
+**Fragment Effects:**
+- [x] Particle trail spiraling around fragment
+- [x] Light beam shooting upward (visible from distance)
+- [x] Screen particle burst on collection (confetti-like)
+- [x] Camera shake variation by fragment type
+- [x] Slow-motion effect for 0.2s on collection
+
+**Fragment Spawning:**
+- [x] Some fragments on building rooftops (requires jump/exploration)
+- [ ] Underwater fragments (find by diving in lakes)
+- [ ] Fragments in hard-to-reach corners (reward thorough exploration)
+- [ ] Fragment preview ghost (faint outline when nearby but hidden)
+
+### 10.5 Screen Effects & Transitions
+
+**Game Start:**
+- [x] Fade-in transition from black
+- [x] Loading screen with progress bar during city generation
+- [x] Loading tips/lore text ("The fog remembers...", etc.)
+
+**Fragment Collection:**
+- [ ] Radial blur pulse effect
+- [x] Color shift (tint screen to fragment color briefly)
+- [x] UI flash/highlight on collection (particle burst)
+
+**Win Transition:**
+- [x] Slow-motion effect (time dilation to 0.3x for 1 second)
+- [ ] Screen brightening (exposure increase)
+- [x] Smooth camera transition to cinematic view
+
+### 10.6 Performance & Optimization
+
+**If Needed:**
+- [ ] LOD for distant buildings (swap to lower poly models)
+- [ ] Occlusion culling (don't render buildings behind buildings)
+- [ ] Texture atlasing for building materials
+- [ ] Reduce particle count on lower-end devices
+- [ ] Fog texture resolution options (256/512/1024)
+
+### 10.7 UX Improvements
+
+**Navigation Aids:**
+- [x] Breadcrumb trail - faint line showing your path
+- [ ] Building height indicator when looking up
+- [ ] Fragment count per district/quadrant
+- [ ] "Nearest 3 fragments" list in HUD
+
+**Settings Menu:**
+- [ ] Graphics quality presets
+- [ ] Audio volume sliders (separate for music, SFX)
+- [ ] Sensitivity controls for mouse
+- [ ] Toggle options (particles, shadows, bloom)
+
+**Accessibility:**
+- [ ] Colorblind modes (adjust fragment colors)
+- [ ] High contrast mode (stronger colors)
+- [ ] Reduce motion option (disable camera shake, bobbing)
+- [ ] Larger UI text option
+
+---
+
+### Priority Ranking for GGJ Publishing
+
+**🔥 Critical (Do Before Publishing):**
+1. None - game is publish-ready!
+
+**⭐ High Impact (30 min or less):**
+1. ~~Animated clouds/sky~~ ✅ DONE
+2. ~~Bird/bat animations~~ ✅ DONE
+3. ~~Enhanced fragment collection effects (particle burst, camera shake)~~ ✅ DONE
+4. ~~Smoother theme transitions~~ ✅ DONE
+5. ~~Loading screen during initialization~~ ✅ DONE
+
+**💡 Nice to Have (If Extra Time):**
+1. ~~Building sway animation~~ ✅ DONE
+2. ~~Tree wind animation~~ ✅ DONE
+3. ~~Footstep surface variation~~ ✅ DONE
+4. ~~Fragment milestone sounds~~ ✅ DONE
+5. Building color districts
+6. ~~Rooftop fragment placement~~ ✅ DONE
+
+**🎨 Advanced (Post-GGJ):**
+1. LOD system
+2. Complete settings menu
+3. Accessibility features
+4. Advanced particle systems
 
 ---
 

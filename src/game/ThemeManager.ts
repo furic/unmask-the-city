@@ -73,7 +73,7 @@ export class ThemeManager {
   private currentTheme: Theme;
   private transitionProgress = 1;
   private targetTheme: Theme | null = null;
-  private transitionSpeed = 0.5;
+  private transitionDuration = 4.0; // 4 seconds for smooth cross-fade
 
   constructor(renderer: THREE.WebGLRenderer, scene: THREE.Scene) {
     this.renderer = renderer;
@@ -145,11 +145,17 @@ export class ThemeManager {
     return a + (b - a) * t;
   }
 
+  private easeInOutCubic(t: number): number {
+    return t < 0.5
+      ? 4 * t * t * t
+      : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+
   update(delta: number): void {
     if (!this.targetTheme || this.transitionProgress >= 1) return;
 
-    this.transitionProgress = Math.min(1, this.transitionProgress + delta * this.transitionSpeed);
-    const t = this.transitionProgress;
+    this.transitionProgress = Math.min(1, this.transitionProgress + delta / this.transitionDuration);
+    const t = this.easeInOutCubic(this.transitionProgress);
 
     // Interpolate all theme values
     const from = this.currentTheme;

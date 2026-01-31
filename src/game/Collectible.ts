@@ -65,12 +65,26 @@ export class Collectible {
   private config: FragmentConfig;
 
   // Settings
-  private readonly COLLECTION_RADIUS = 4;
+  private readonly COLLECTION_RADIUS = 6; // Increased to collect through walls
   private readonly BOB_SPEED = 2;
   private readonly BOB_AMOUNT = 0.5;
   private readonly ROTATE_SPEED = 1.5;
-  private readonly PARTICLE_COUNT = 20;
-  private readonly PARTICLE_SPEED = 8;
+  private readonly PARTICLE_COUNT = 40; // Enhanced particle count
+  private readonly PARTICLE_SPEED = 12; // Faster particles
+
+  // Light beam on collection
+  private lightBeam: THREE.Mesh | null = null;
+  private beamLife = 0;
+
+  // Spiral trail particles
+  private spiralParticles: THREE.Mesh[] = [];
+  private readonly SPIRAL_PARTICLE_COUNT = 8;
+  private readonly SPIRAL_RADIUS = 2.5;
+  private readonly SPIRAL_SPEED = 2;
+
+  // Beacon beam (visible from distance)
+  private beaconBeam: THREE.Mesh | null = null;
+  private readonly BEACON_HEIGHT = 100;
 
   constructor(position: THREE.Vector3, fragmentType: FragmentType = 'common') {
     this.position = position.clone();
@@ -110,10 +124,10 @@ export class Collectible {
 
     // Note: Removed PointLight for performance - emissive material + bloom provides glow effect
 
-    // Particle system setup
-    this.particleGeometry = new THREE.SphereGeometry(0.15, 8, 8);
+    // Particle system setup - use fragment color
+    this.particleGeometry = new THREE.SphereGeometry(0.2, 8, 8);
     this.particleMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00ffaa,
+      color: this.config.color,
       transparent: true,
       opacity: 1,
     });
@@ -123,6 +137,57 @@ export class Collectible {
     this.scene = scene;
     scene.add(this.mesh);
     scene.add(this.glowMesh);
+
+    // Create spiral trail particles
+    this.createSpiralParticles();
+
+    // Create beacon beam (visible from distance)
+    this.createBeaconBeam();
+  }
+
+  private createBeaconBeam(): void {
+    if (!this.scene) return;
+
+    // Hidden fragments don't have beacons (they need to be discovered)
+    if (this.fragmentType === 'hidden') return;
+
+    // Create a tall, thin cylinder beam
+    const beamGeometry = new THREE.CylinderGeometry(0.15, 0.4, this.BEACON_HEIGHT, 6);
+    const beamMaterial = new THREE.MeshBasicMaterial({
+      color: this.config.color,
+      transparent: true,
+      opacity: 0.15,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+
+    this.beaconBeam = new THREE.Mesh(beamGeometry, beamMaterial);
+    this.beaconBeam.position.copy(this.position);
+    this.beaconBeam.position.y += this.BEACON_HEIGHT / 2; // Center beam above fragment
+
+    this.scene.add(this.beaconBeam);
+  }
+
+  private createSpiralParticles(): void {
+    if (!this.scene) return;
+
+    // Don't create spiral for hidden fragments (they're invisible until close)
+    if (this.fragmentType === 'hidden') return;
+
+    for (let i = 0; i < this.SPIRAL_PARTICLE_COUNT; i++) {
+      const geometry = new THREE.SphereGeometry(0.1, 6, 6);
+      const material = new THREE.MeshBasicMaterial({
+        color: this.config.color,
+        transparent: true,
+        opacity: 0.6,
+      });
+
+      const particle = new THREE.Mesh(geometry, material);
+      particle.position.copy(this.position);
+
+      this.spiralParticles.push(particle);
+      this.scene.add(particle);
+    }
   }
 
   remove(scene: THREE.Scene): void {
@@ -143,6 +208,22 @@ export class Collectible {
     this.particles = [];
     this.particleGeometry.dispose();
     this.particleMaterial.dispose();
+
+    // Clean up spiral particles
+    this.spiralParticles.forEach((particle) => {
+      scene.remove(particle);
+      particle.geometry.dispose();
+      (particle.material as THREE.Material).dispose();
+    });
+    this.spiralParticles = [];
+
+    // Clean up beacon beam
+    if (this.beaconBeam) {
+      scene.remove(this.beaconBeam);
+      this.beaconBeam.geometry.dispose();
+      (this.beaconBeam.material as THREE.Material).dispose();
+      this.beaconBeam = null;
+    }
   }
 
   update(delta: number): void {
@@ -150,6 +231,9 @@ export class Collectible {
 
     // Update particles (even after collection)
     this.updateParticles(delta);
+
+    // Update light beam
+    this.updateLightBeam(delta);
 
     if (this.isCollected) return;
 
@@ -166,6 +250,45 @@ export class Collectible {
     // Pulse glow
     const pulse = 0.15 + Math.sin(this.time * 3) * 0.1;
     (this.glowMesh.material as THREE.MeshBasicMaterial).opacity = pulse;
+
+    // Update spiral trail particles
+    this.updateSpiralParticles();
+
+    // Update beacon beam (pulsing opacity)
+    if (this.beaconBeam) {
+      const pulse = 0.1 + Math.sin(this.time * 2) * 0.05;
+      (this.beaconBeam.material as THREE.MeshBasicMaterial).opacity = pulse;
+    }
+  }
+
+  private updateSpiralParticles(): void {
+    if (this.spiralParticles.length === 0) return;
+
+    const centerY = this.mesh.position.y;
+
+    for (let i = 0; i < this.spiralParticles.length; i++) {
+      const particle = this.spiralParticles[i];
+
+      // Each particle is offset in phase
+      const phase = (i / this.SPIRAL_PARTICLE_COUNT) * Math.PI * 2;
+      const angle = this.time * this.SPIRAL_SPEED + phase;
+
+      // Spiral motion with vertical oscillation
+      const verticalOffset = Math.sin(this.time * 3 + phase) * 0.8;
+      const radius = this.SPIRAL_RADIUS + Math.sin(this.time * 2 + phase) * 0.3;
+
+      particle.position.x = this.position.x + Math.cos(angle) * radius;
+      particle.position.y = centerY + verticalOffset;
+      particle.position.z = this.position.z + Math.sin(angle) * radius;
+
+      // Pulse opacity
+      const opacity = 0.4 + Math.sin(this.time * 4 + phase) * 0.2;
+      (particle.material as THREE.MeshBasicMaterial).opacity = opacity;
+
+      // Scale based on position in spiral
+      const scale = 0.8 + Math.sin(this.time * 2 + phase) * 0.3;
+      particle.scale.setScalar(scale);
+    }
   }
 
   private updateParticles(delta: number): void {
@@ -280,12 +403,88 @@ export class Collectible {
     // Spawn particle explosion
     this.spawnParticles();
 
+    // Create light beam shooting upward
+    this.createLightBeam();
+
     // Hide meshes
     this.mesh.visible = false;
     this.glowMesh.visible = false;
+
+    // Hide spiral particles
+    this.spiralParticles.forEach((particle) => {
+      particle.visible = false;
+    });
+
+    // Hide beacon beam
+    if (this.beaconBeam) {
+      this.beaconBeam.visible = false;
+    }
+  }
+
+  private createLightBeam(): void {
+    if (!this.scene) return;
+
+    // Create a tall cylinder beam
+    const beamGeometry = new THREE.CylinderGeometry(0.3, 1.5, 50, 8);
+    const beamMaterial = new THREE.MeshBasicMaterial({
+      color: this.config.color,
+      transparent: true,
+      opacity: 0.6,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+
+    this.lightBeam = new THREE.Mesh(beamGeometry, beamMaterial);
+    this.lightBeam.position.copy(this.position);
+    this.lightBeam.position.y += 25; // Center beam above collection point
+
+    this.beamLife = 1.0; // 1 second duration
+    this.scene.add(this.lightBeam);
+  }
+
+  private updateLightBeam(delta: number): void {
+    if (!this.lightBeam || !this.scene) return;
+
+    this.beamLife -= delta * 2; // Fade over 0.5 seconds
+
+    if (this.beamLife <= 0) {
+      this.scene.remove(this.lightBeam);
+      this.lightBeam.geometry.dispose();
+      (this.lightBeam.material as THREE.Material).dispose();
+      this.lightBeam = null;
+    } else {
+      // Fade out and scale up
+      (this.lightBeam.material as THREE.MeshBasicMaterial).opacity = this.beamLife * 0.6;
+      this.lightBeam.scale.x = 1 + (1 - this.beamLife) * 2;
+      this.lightBeam.scale.z = 1 + (1 - this.beamLife) * 2;
+      this.lightBeam.position.y += delta * 20; // Move upward
+    }
   }
 
   getPosition(): THREE.Vector3 {
     return this.position.clone();
+  }
+
+  /**
+   * Update fragment glow based on night mode (fragments glow brighter at night)
+   * @param nightAmount 0 = day, 1 = full night
+   */
+  setNightMode(nightAmount: number): void {
+    if (this.isCollected) return;
+
+    const material = this.mesh.material as THREE.MeshStandardMaterial;
+    const glowMaterial = this.glowMesh.material as THREE.MeshBasicMaterial;
+
+    // Increase emissive intensity at night (up to 2x brighter)
+    const nightBoost = 1 + nightAmount * 1.5;
+    material.emissiveIntensity = this.config.emissiveIntensity * nightBoost;
+
+    // Increase glow opacity at night
+    const baseOpacity = this.fragmentType === 'hidden' ? 0 : 0.2;
+    glowMaterial.opacity = baseOpacity * (1 + nightAmount * 0.5);
+
+    // Scale up glow mesh slightly at night
+    const glowScale = 1.5 * (1 + nightAmount * 0.2);
+    this.glowMesh.scale.setScalar(glowScale / 1.5);
   }
 }

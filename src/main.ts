@@ -108,6 +108,17 @@ async function updateLeaderboard(difficulty: string = 'normal') {
   }
 }
 
+// Loading tips that cycle during initialization
+const LOADING_TIPS = [
+  'The fog remembers all who have explored before...',
+  'Buildings hide secrets in their shadows...',
+  'Sprint wisely, stamina is precious...',
+  'Parks restore your energy faster...',
+  'Rare fragments glow brighter than common ones...',
+  'Look for hidden fragments that only reveal themselves nearby...',
+  'The city changes as day turns to night...',
+];
+
 // Wait for DOM
 document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('game-container');
@@ -115,6 +126,29 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('Game container not found');
     return;
   }
+
+  // Loading screen elements
+  const loadingScreen = document.getElementById('loading-screen');
+  const loadingBar = document.getElementById('loading-bar');
+  const loadingTip = document.getElementById('loading-tip');
+
+  // Simulate loading progress with steps
+  const loadingSteps = [
+    { progress: 20, delay: 100 },
+    { progress: 40, delay: 200 },
+    { progress: 60, delay: 300 },
+    { progress: 80, delay: 400 },
+    { progress: 100, delay: 500 },
+  ];
+
+  // Update loading tip periodically
+  let tipIndex = 0;
+  const tipInterval = setInterval(() => {
+    if (loadingTip) {
+      tipIndex = (tipIndex + 1) % LOADING_TIPS.length;
+      loadingTip.textContent = LOADING_TIPS[tipIndex];
+    }
+  }, 2000);
 
   let selectedDifficulty = 'normal';
   let game: Game | null = null;
@@ -126,6 +160,35 @@ document.addEventListener('DOMContentLoaded', () => {
       devBtn.classList.remove('hidden');
     }
   }
+
+  // Animate loading bar while game initializes
+  const animateLoading = () => {
+    let stepIndex = 0;
+    const nextStep = () => {
+      if (stepIndex < loadingSteps.length) {
+        const step = loadingSteps[stepIndex];
+        if (loadingBar) {
+          loadingBar.style.width = `${step.progress}%`;
+        }
+        stepIndex++;
+        setTimeout(nextStep, step.delay);
+      } else {
+        // Loading complete - hide loading screen
+        clearInterval(tipInterval);
+        if (loadingScreen) {
+          loadingScreen.classList.add('hidden');
+          // Remove from DOM after transition
+          setTimeout(() => {
+            loadingScreen.style.display = 'none';
+          }, 500);
+        }
+      }
+    };
+    nextStep();
+  };
+
+  // Start loading animation
+  animateLoading();
 
   // Initialize game immediately for preview mode
   const settings = DIFFICULTIES[selectedDifficulty];
@@ -146,12 +209,15 @@ document.addEventListener('DOMContentLoaded', () => {
       infoModal.classList.add('show');
     });
 
-    infoClose.addEventListener('click', () => {
+    infoClose.addEventListener('click', (e) => {
+      e.stopPropagation(); // Don't bubble to start screen
+      e.preventDefault();
       infoModal.classList.remove('show');
     });
 
     // Close modal when clicking outside content
     infoModal.addEventListener('click', (e) => {
+      e.stopPropagation(); // Don't bubble to start screen
       if (e.target === infoModal) {
         infoModal.classList.remove('show');
       }
@@ -198,8 +264,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const startScreen = document.getElementById('start-screen');
   if (startScreen) {
     startScreen.addEventListener('click', (e) => {
-      // Ignore clicks on difficulty buttons
-      if ((e.target as HTMLElement).classList.contains('difficulty-btn')) {
+      const target = e.target as HTMLElement;
+
+      // Only start game if clicking directly on start screen background or specific text elements
+      // Ignore clicks on any buttons or interactive elements
+      if (target.tagName === 'BUTTON' ||
+          target.closest('button') ||
+          target.closest('.difficulty-selector') ||
+          target.closest('.leaderboard')) {
         return;
       }
 

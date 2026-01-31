@@ -40,6 +40,10 @@ export class WinSequence {
   // God rays overlay
   private godRaysOverlay: HTMLDivElement | null = null;
 
+  // Slow motion effect
+  private timeScale = 1.0;
+  private targetTimeScale = 1.0;
+
   constructor(
     renderer: THREE.WebGLRenderer,
     scene: THREE.Scene,
@@ -115,6 +119,10 @@ export class WinSequence {
     this.onComplete = onComplete;
     this.fogClearRadius = 0;
     this.lastFireworkLaunch = 0;
+
+    // Start slow motion effect
+    this.timeScale = 1.0;
+    this.targetTimeScale = 0.3; // Slow down to 30% speed
 
     // Clear any pending sound timers from previous sequence
     this.pendingSoundTimers.forEach(id => clearTimeout(id));
@@ -218,7 +226,7 @@ export class WinSequence {
     });
 
     // Firework sounds (delayed)
-    const timerId = setTimeout(() => {
+    const timerId = window.setTimeout(() => {
       this.playFireworkSound(audioContext);
     }, 2500);
     this.pendingSoundTimers.push(timerId);
@@ -267,6 +275,15 @@ export class WinSequence {
 
   update(delta: number): boolean {
     if (!this.isPlaying) return false;
+
+    // Update time scale with smooth transition
+    const timeScaleLerp = 0.03; // Smooth transition speed
+    this.timeScale += (this.targetTimeScale - this.timeScale) * timeScaleLerp;
+
+    // Gradually return to normal speed after 3 seconds
+    if (this.sequenceTime > 3.0 && this.targetTimeScale < 1.0) {
+      this.targetTimeScale = 1.0;
+    }
 
     this.sequenceTime += delta;
 
@@ -342,7 +359,7 @@ export class WinSequence {
       const audioContext = (this.audioManager as any).audioContext as AudioContext;
       if (audioContext) {
         // Delay sound to match when fireworks explode (~1.6s after launch)
-        const timerId = setTimeout(() => {
+        const timerId = window.setTimeout(() => {
           this.playFireworkSound(audioContext);
         }, 1600);
         this.pendingSoundTimers.push(timerId);
@@ -372,6 +389,10 @@ export class WinSequence {
     // Stop the sequence
     this.isPlaying = false;
 
+    // Reset time scale
+    this.timeScale = 1.0;
+    this.targetTimeScale = 1.0;
+
     // Stop fireworks
     this.fireworks.stop();
 
@@ -395,6 +416,14 @@ export class WinSequence {
 
   getIsPlaying(): boolean {
     return this.isPlaying;
+  }
+
+  /**
+   * Get current time scale for slow motion effect
+   * @returns Time scale factor (1.0 = normal, < 1.0 = slow motion)
+   */
+  getTimeScale(): number {
+    return this.timeScale;
   }
 
   dispose(): void {

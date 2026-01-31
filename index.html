@@ -155,7 +155,60 @@
         width: 100%;
         transition: width 0.1s ease-out;
       }
-      
+
+      /* Loading Screen */
+      #loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #0a0a14;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        transition: opacity 0.5s ease-out;
+      }
+
+      #loading-screen.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #loading-screen h2 {
+        font-size: 32px;
+        font-weight: 300;
+        letter-spacing: 6px;
+        color: white;
+        margin-bottom: 40px;
+        text-transform: uppercase;
+      }
+
+      .loading-bar-container {
+        width: 300px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+        overflow: hidden;
+        margin-bottom: 20px;
+      }
+
+      .loading-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #00ffaa, #00aaff);
+        width: 0%;
+        transition: width 0.3s ease-out;
+      }
+
+      .loading-tip {
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.6);
+        font-style: italic;
+        letter-spacing: 1px;
+      }
+
       /* Start Screen */
       #start-screen {
         position: absolute;
@@ -318,6 +371,13 @@
       #win-screen .stats > div:nth-child(1) { animation-delay: 0.3s; }
       #win-screen .stats > div:nth-child(2) { animation-delay: 0.5s; }
       #win-screen .stats > div:nth-child(3) { animation-delay: 0.7s; }
+      #win-screen .stats > div:nth-child(4) { animation-delay: 0.9s; }
+
+      #final-bonus .stat-value {
+        color: #ffaa00;
+        font-size: 18px;
+        text-shadow: 0 0 15px rgba(255, 170, 0, 0.6);
+      }
 
       @keyframes statReveal {
         to { opacity: 1; transform: translateY(0); }
@@ -382,6 +442,112 @@
       
       .hidden {
         display: none !important;
+      }
+
+      /* Game start fade-in overlay */
+      #fade-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #000;
+        z-index: 1500;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 1.5s ease-out;
+      }
+
+      #fade-overlay.fade-out {
+        opacity: 0;
+      }
+
+      #fade-overlay.hidden {
+        display: none;
+      }
+
+      /* Collection particle burst container */
+      #collection-burst {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 1200;
+      }
+
+      .burst-particle {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+        opacity: 0;
+        animation: burstOut 0.8s ease-out forwards;
+      }
+
+      @keyframes burstOut {
+        0% {
+          opacity: 1;
+          transform: translate(0, 0) scale(1) rotate(0deg);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(var(--tx), var(--ty)) scale(0.3) rotate(720deg);
+        }
+      }
+
+      /* Color tint overlay on collection */
+      #color-tint-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        z-index: 1100;
+        opacity: 0;
+        transition: opacity 0.15s ease-out;
+      }
+
+      #color-tint-overlay.active {
+        opacity: 1;
+        animation: tintPulse 0.4s ease-out;
+      }
+
+      @keyframes tintPulse {
+        0% { opacity: 0; }
+        30% { opacity: 1; }
+        100% { opacity: 0; }
+      }
+
+      /* Bonus popup */
+      .bonus-popup {
+        position: fixed;
+        top: 30%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 28px;
+        font-weight: 700;
+        color: #ffaa00;
+        text-shadow: 0 0 20px rgba(255, 170, 0, 0.8), 0 2px 4px rgba(0, 0, 0, 0.5);
+        z-index: 1300;
+        pointer-events: none;
+        animation: bonusIn 0.3s ease-out;
+        letter-spacing: 2px;
+      }
+
+      .bonus-popup.fade-out {
+        animation: bonusFade 0.5s ease-out forwards;
+      }
+
+      @keyframes bonusIn {
+        0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+        100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      }
+
+      @keyframes bonusFade {
+        0% { transform: translate(-50%, -50%) scale(1) translateY(0); opacity: 1; }
+        100% { transform: translate(-50%, -50%) scale(1.2) translateY(-30px); opacity: 0; }
       }
 
       /* Pause Menu */
@@ -659,6 +825,24 @@
     </style>
   </head>
   <body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+      <h2>Loading City...</h2>
+      <div class="loading-bar-container">
+        <div class="loading-bar" id="loading-bar"></div>
+      </div>
+      <p class="loading-tip" id="loading-tip">The fog remembers all who have explored before...</p>
+    </div>
+
+    <!-- Fade-in overlay (shows black, fades out when game starts) -->
+    <div id="fade-overlay" class="hidden"></div>
+
+    <!-- Collection particle burst effect -->
+    <div id="collection-burst"></div>
+
+    <!-- Color tint overlay for collection feedback -->
+    <div id="color-tint-overlay"></div>
+
     <div id="game-container">
       <!-- Start Screen -->
       <div id="start-screen">
@@ -727,6 +911,7 @@
         <div class="stats">
           <div id="final-time"><span class="stat-value">00:00</span><span class="stat-label">Time</span></div>
           <div id="final-explored"><span class="stat-value">0%</span><span class="stat-label">Explored</span></div>
+          <div id="final-bonus"><span class="stat-value"></span></div>
           <div id="final-score"><span class="stat-value">0</span><span class="stat-label">Score</span></div>
         </div>
         <button id="play-again">Play Again</button>
@@ -751,6 +936,10 @@
           <div class="control-row">
             <span class="key">Space</span>
             <span class="action">Jump</span>
+          </div>
+          <div class="control-row">
+            <span class="key">Ctrl + Sprint</span>
+            <span class="action">Slide</span>
           </div>
           <div class="control-row">
             <span class="key">M</span>
@@ -783,6 +972,7 @@
             <li><strong>Move:</strong> WASD or Arrow keys</li>
             <li><strong>Look around:</strong> Mouse</li>
             <li><strong>Sprint:</strong> Hold Shift (drains stamina)</li>
+            <li><strong>Slide:</strong> Ctrl while sprinting (speed boost)</li>
             <li><strong>Jump:</strong> Space</li>
             <li><strong>Mute audio:</strong> M</li>
             <li><strong>Pause:</strong> Esc</li>

@@ -482,6 +482,37 @@ export class Water {
     return this.waterBodies;
   }
 
+  // Get distance to nearest water body (for audio ambience)
+  getDistanceToWater(position: THREE.Vector3): number {
+    let minDist = Infinity;
+
+    for (const body of this.waterBodies) {
+      const dx = position.x - body.position.x;
+      const dz = position.z - body.position.z;
+      const distToCenter = Math.sqrt(dx * dx + dz * dz);
+
+      // Approximate distance to water edge
+      let distToEdge: number;
+      if (body.type === 'lake') {
+        distToEdge = Math.max(0, distToCenter - body.radius);
+      } else {
+        // River: check both length and width dimensions
+        const riverLength = body.riverLength || 80;
+        const angle = body.riverAngle || 0;
+        const localX = dx * Math.cos(-angle) - dz * Math.sin(-angle);
+        const localZ = dx * Math.sin(-angle) + dz * Math.cos(-angle);
+
+        const distAlongRiver = Math.max(0, Math.abs(localZ) - riverLength / 2);
+        const distAcrossRiver = Math.max(0, Math.abs(localX) - body.radius);
+        distToEdge = Math.sqrt(distAlongRiver * distAlongRiver + distAcrossRiver * distAcrossRiver);
+      }
+
+      minDist = Math.min(minDist, distToEdge);
+    }
+
+    return minDist;
+  }
+
   // Check if position is too close to water (for building spawning)
   isNearWater(position: THREE.Vector3, padding = 10): boolean {
     for (const body of this.waterBodies) {

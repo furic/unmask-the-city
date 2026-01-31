@@ -43,21 +43,29 @@ export class Player {
   private inWater = false;
   private readonly WATER_SPEED_MULTIPLIER = 0.5;
 
-  // Dash
+  // Dash (currently using sprint instead - dash vars kept for cooldown mechanics)
   private readonly DASH_SPEED = 60;
-  private readonly DASH_DURATION = 0.15;
   private readonly DASH_COOLDOWN = 1.0;
-  private readonly DASH_STAMINA_COST = 20;
   private isDashing = false;
   private dashTimer = 0;
   private dashCooldownTimer = 0;
   private dashDirection = new THREE.Vector3();
-  private lastKeyPress: { key: string; time: number } | null = null;
 
   // Head bob
   private headBobTime = 0;
   private readonly HEAD_BOB_FREQUENCY = 12;
   private readonly HEAD_BOB_AMPLITUDE = 0.08;
+
+  // Slide
+  private isSliding = false;
+  private slideTimer = 0;
+  private slideCooldownTimer = 0;
+  private slideDirection = new THREE.Vector3();
+  private readonly SLIDE_DURATION = 0.6;
+  private readonly SLIDE_COOLDOWN = 1.2;
+  private readonly SLIDE_SPEED = 50;
+  private readonly SLIDE_HEIGHT = 2.5; // Crouched height during slide
+  private ctrlPressed = false;
 
   constructor(controls: PointerLockControls) {
     this.controls = controls;
@@ -73,41 +81,41 @@ export class Player {
   }
 
   private onKeyDown(event: KeyboardEvent): void {
-    // Double-tap dash detection
-    const now = performance.now();
-    const doubleTapWindow = 250; // ms
+    // Double-tap dash detection - DISABLED (was causing accidental dashes)
+    // const now = performance.now();
+    // const doubleTapWindow = 150; // ms
 
     switch (event.code) {
       case 'ArrowUp':
       case 'KeyW':
-        if (this.lastKeyPress?.key === 'forward' && now - this.lastKeyPress.time < doubleTapWindow) {
-          this.triggerDash('forward');
-        }
-        this.lastKeyPress = { key: 'forward', time: now };
+        // if (this.lastKeyPress?.key === 'forward' && now - this.lastKeyPress.time < doubleTapWindow) {
+        //   this.triggerDash('forward');
+        // }
+        // this.lastKeyPress = { key: 'forward', time: now };
         this.moveForward = true;
         break;
       case 'ArrowLeft':
       case 'KeyA':
-        if (this.lastKeyPress?.key === 'left' && now - this.lastKeyPress.time < doubleTapWindow) {
-          this.triggerDash('left');
-        }
-        this.lastKeyPress = { key: 'left', time: now };
+        // if (this.lastKeyPress?.key === 'left' && now - this.lastKeyPress.time < doubleTapWindow) {
+        //   this.triggerDash('left');
+        // }
+        // this.lastKeyPress = { key: 'left', time: now };
         this.moveLeft = true;
         break;
       case 'ArrowDown':
       case 'KeyS':
-        if (this.lastKeyPress?.key === 'backward' && now - this.lastKeyPress.time < doubleTapWindow) {
-          this.triggerDash('backward');
-        }
-        this.lastKeyPress = { key: 'backward', time: now };
+        // if (this.lastKeyPress?.key === 'backward' && now - this.lastKeyPress.time < doubleTapWindow) {
+        //   this.triggerDash('backward');
+        // }
+        // this.lastKeyPress = { key: 'backward', time: now };
         this.moveBackward = true;
         break;
       case 'ArrowRight':
       case 'KeyD':
-        if (this.lastKeyPress?.key === 'right' && now - this.lastKeyPress.time < doubleTapWindow) {
-          this.triggerDash('right');
-        }
-        this.lastKeyPress = { key: 'right', time: now };
+        // if (this.lastKeyPress?.key === 'right' && now - this.lastKeyPress.time < doubleTapWindow) {
+        //   this.triggerDash('right');
+        // }
+        // this.lastKeyPress = { key: 'right', time: now };
         this.moveRight = true;
         break;
       case 'ShiftLeft':
@@ -117,33 +125,11 @@ export class Player {
       case 'Space':
         this.jumpPressed = true;
         break;
+      case 'ControlLeft':
+      case 'ControlRight':
+        this.ctrlPressed = true;
+        break;
     }
-  }
-
-  private triggerDash(direction: string): void {
-    if (this.isDashing || this.dashCooldownTimer > 0 || this.stamina < this.DASH_STAMINA_COST) {
-      return;
-    }
-
-    this.isDashing = true;
-    this.dashTimer = this.DASH_DURATION;
-    this.stamina -= this.DASH_STAMINA_COST;
-
-    // Get camera forward/right vectors
-    const forward = new THREE.Vector3();
-    const right = new THREE.Vector3();
-    this.controls.object.getWorldDirection(forward);
-    forward.y = 0;
-    forward.normalize();
-    right.crossVectors(forward, new THREE.Vector3(0, 1, 0));
-
-    // Set dash direction
-    this.dashDirection.set(0, 0, 0);
-    if (direction === 'forward') this.dashDirection.add(forward);
-    else if (direction === 'backward') this.dashDirection.sub(forward);
-    else if (direction === 'left') this.dashDirection.sub(right);
-    else if (direction === 'right') this.dashDirection.add(right);
-    this.dashDirection.normalize();
   }
 
   private onKeyUp(event: KeyboardEvent): void {
@@ -168,6 +154,10 @@ export class Player {
       case 'ShiftRight':
         this.isSprinting = false;
         break;
+      case 'ControlLeft':
+      case 'ControlRight':
+        this.ctrlPressed = false;
+        break;
     }
   }
 
@@ -190,9 +180,45 @@ export class Player {
       }
     }
 
-    // Determine target speed
+    // Update slide cooldown
+    if (this.slideCooldownTimer > 0) {
+      this.slideCooldownTimer -= delta;
+    }
+
+    // Trigger slide (Ctrl while sprinting and moving)
     const isMoving = this.moveForward || this.moveBackward || this.moveLeft || this.moveRight;
     const canSprint = this.isSprinting && this.stamina > this.STAMINA_SPRINT_THRESHOLD;
+    if (this.ctrlPressed && canSprint && isMoving && !this.isSliding && this.slideCooldownTimer <= 0 && this.isGrounded) {
+      this.isSliding = true;
+      this.slideTimer = this.SLIDE_DURATION;
+
+      // Capture current movement direction for slide
+      const forward = new THREE.Vector3();
+      const right = new THREE.Vector3();
+      this.controls.object.getWorldDirection(forward);
+      forward.y = 0;
+      forward.normalize();
+      right.crossVectors(forward, new THREE.Vector3(0, 1, 0));
+
+      this.slideDirection.set(0, 0, 0);
+      this.slideDirection.addScaledVector(forward, Number(this.moveForward) - Number(this.moveBackward));
+      this.slideDirection.addScaledVector(right, Number(this.moveRight) - Number(this.moveLeft));
+      this.slideDirection.normalize();
+
+      // Drain some stamina for slide
+      this.stamina = Math.max(0, this.stamina - 15);
+    }
+
+    // Update slide state
+    if (this.isSliding) {
+      this.slideTimer -= delta;
+      if (this.slideTimer <= 0) {
+        this.isSliding = false;
+        this.slideCooldownTimer = this.SLIDE_COOLDOWN;
+      }
+    }
+
+    // Determine target speed (isMoving and canSprint already defined above for slide)
     let targetSpeed = isMoving ? (canSprint ? this.SPRINT_SPEED : this.WALK_SPEED) : 0;
 
     // Apply water slowdown
@@ -229,6 +255,11 @@ export class Player {
     if (this.isDashing) {
       // During dash, use dash direction at high speed
       desiredVelocity.copy(this.dashDirection).multiplyScalar(this.DASH_SPEED);
+    } else if (this.isSliding) {
+      // During slide, use captured slide direction with decaying speed
+      const slideProgress = 1 - (this.slideTimer / this.SLIDE_DURATION);
+      const slideSpeed = this.SLIDE_SPEED * (1 - slideProgress * 0.5); // Decay to 50% speed
+      desiredVelocity.copy(this.slideDirection).multiplyScalar(slideSpeed);
     } else {
       desiredVelocity.addScaledVector(forward, this.direction.z);
       desiredVelocity.addScaledVector(right, this.direction.x);
@@ -257,16 +288,22 @@ export class Player {
     // Apply vertical movement
     newPosition.y += this.verticalVelocity * delta;
 
-    // Ground/water height check
-    const groundHeight = this.inWater ? this.PLAYER_HEIGHT - 1 : this.PLAYER_HEIGHT;
-    if (newPosition.y <= groundHeight) {
-      newPosition.y = groundHeight;
+    // Ground/water height check (lower during slide)
+    let currentHeight = this.PLAYER_HEIGHT;
+    if (this.isSliding) {
+      currentHeight = this.SLIDE_HEIGHT;
+    } else if (this.inWater) {
+      currentHeight = this.PLAYER_HEIGHT - 1;
+    }
+
+    if (newPosition.y <= currentHeight) {
+      newPosition.y = currentHeight;
       this.verticalVelocity = 0;
       this.isGrounded = true;
     }
 
-    // Head bob effect when moving on ground
-    if (isMoving && this.isGrounded && !this.isDashing) {
+    // Head bob effect when moving on ground (not during slide or dash)
+    if (isMoving && this.isGrounded && !this.isDashing && !this.isSliding) {
       this.headBobTime += delta * this.HEAD_BOB_FREQUENCY * (canSprint ? 1.3 : 1);
       const bobOffset = Math.sin(this.headBobTime) * this.HEAD_BOB_AMPLITUDE;
       newPosition.y += bobOffset;
@@ -323,8 +360,18 @@ export class Player {
     this.isDashing = false;
     this.dashTimer = 0;
     this.dashCooldownTimer = 0;
+    this.isSliding = false;
+    this.slideTimer = 0;
+    this.slideCooldownTimer = 0;
+    this.ctrlPressed = false;
     this.inWater = false;
     this.headBobTime = 0;
-    this.lastKeyPress = null;
+  }
+
+  /**
+   * Get current player position without updating movement
+   */
+  getPosition(): THREE.Vector3 {
+    return this.controls.object.position;
   }
 }
