@@ -111,8 +111,8 @@ export class Guard {
 
       // Put cone in a group for easier positioning
       const coneGroup = new THREE.Group();
-      // Move cone backward so tip is at group origin (cone points forward along +Z)
-      cone.position.z = -coneLength / 2;
+      // No offset - cone centered at origin, extends forward and back
+      cone.position.z = 0;
       coneGroup.add(cone);
 
       // Position group at guard
