@@ -30,7 +30,7 @@ export class WinSequence {
 
   // Fireworks
   private fireworks: FireworksSystem;
-  private fireworksStarted = false;
+  private lastFireworkLaunch = 0; // Track when we last launched fireworks
 
   // Fragment beams
   private fragmentBeams: THREE.Mesh[] = [];
@@ -113,7 +113,7 @@ export class WinSequence {
     this.playerPos.copy(playerPos);
     this.onComplete = onComplete;
     this.fogClearRadius = 0;
-    this.fireworksStarted = false;
+    this.lastFireworkLaunch = 0;
 
     // Store original values
     this.originalSkyColor.copy(this.scene.fog ? (this.scene.fog as THREE.FogExp2).color : new THREE.Color(0xd4d4d8));
@@ -253,6 +253,11 @@ export class WinSequence {
 
     this.sequenceTime += delta;
 
+    // Debug logging (remove later)
+    if (Math.floor(this.sequenceTime * 2) % 2 === 0) { // Log every 0.5s
+      console.log(`[WinSequence] time: ${this.sequenceTime.toFixed(2)}s, fireworks active: ${this.fireworks.isFinished() ? 'NO' : 'YES'}`);
+    }
+
     // Phase 1: Fragment beams appear (0.5-2.0s)
     if (this.sequenceTime > 0.5 && this.sequenceTime < 2.0) {
       const beamProgress = Math.min((this.sequenceTime - 0.5) / 1.0, 1);
@@ -303,14 +308,17 @@ export class WinSequence {
       }
     }
 
-    // Phase 4: Fireworks (2.5-5.5s)
-    if (this.sequenceTime > 2.5 && !this.fireworksStarted) {
-      this.fireworksStarted = true;
-      // Launch fireworks from high positions around the city
+    // Phase 4: Fireworks (2.5s onwards - launch waves every 1.2 seconds)
+    if (this.sequenceTime > 2.5 && this.sequenceTime - this.lastFireworkLaunch > 1.2) {
+      this.lastFireworkLaunch = this.sequenceTime;
+      console.log(`[WinSequence] Launching fireworks wave at ${this.sequenceTime.toFixed(1)}s`);
+
+      // Launch 3-4 fireworks per wave
       const launchPositions: THREE.Vector3[] = [];
-      for (let i = 0; i < 6; i++) {
-        const angle = (i / 6) * Math.PI * 2;
-        const dist = 80 + Math.random() * 40;
+      const count = 3 + Math.floor(Math.random() * 2);
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 60 + Math.random() * 60;
         launchPositions.push(new THREE.Vector3(
           Math.cos(angle) * dist,
           0,
