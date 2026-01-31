@@ -337,17 +337,15 @@ export class WinSequence {
       this.camera.position.y += delta * 2 * (1 - camProgress);
     }
 
-    // Sequence complete
-    if (this.sequenceTime >= 6.0) {
-      this.isPlaying = false;
-      this.cleanup();
-      if (this.onComplete) {
-        this.onComplete();
-      }
-      return false;
+    // Show win screen at 6s, but keep sequence running for fireworks!
+    if (this.sequenceTime >= 6.0 && this.onComplete) {
+      console.log('[WinSequence] 6s reached - showing win screen, but fireworks continue!');
+      this.onComplete(); // Show win screen
+      this.onComplete = null; // Clear callback so it only fires once
+      // Don't set isPlaying = false or call cleanup() - let fireworks continue!
     }
 
-    return true;
+    return true; // Keep updating!
   }
 
   cleanup(): void {
