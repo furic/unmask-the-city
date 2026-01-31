@@ -344,29 +344,20 @@ export class Game {
     const MIN_DISTANCE = 40; // Minimum distance between collectibles
     const parkPositions = this.city.getParkCenters();
 
-    // Get 1-2 rooftop positions for special fragments
-    const rooftopCount = 1 + Math.floor(Math.random() * 2);
-    const rooftopPositions = this.city.getRooftopPositions(rooftopCount);
-    let rooftopIndex = 0;
-
-    // Spawn new collectibles
+    // Spawn new collectibles (all at ground level - no rooftop spawning)
     for (let i = 0; i < this.totalFragments; i++) {
       let position: THREE.Vector3;
       let attempts = 0;
       const maxAttempts = 200; // Increased for better validation
 
-      // 15% chance for rooftop placement (after first fragment, if rooftops available)
-      const useRooftop = i > 0 && rooftopIndex < rooftopPositions.length && Math.random() < 0.15;
+      // No rooftop placement - all fragments at ground level
+      const useRooftop = false;
 
       // 60% chance to spawn in/near a park (except first fragment and rooftop)
       const preferPark = i > 0 && !useRooftop && Math.random() < 0.6 && parkPositions.length > 0;
 
-      // Find valid position
-      if (useRooftop) {
-        // Use a rooftop position
-        position = rooftopPositions[rooftopIndex].clone();
-        rooftopIndex++;
-      } else {
+      // Find valid position (all ground level)
+      {
         do {
           // First collectible spawns near origin
           if (i === 0) {

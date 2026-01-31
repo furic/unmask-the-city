@@ -1267,11 +1267,13 @@ export class City {
       });
 
       // Merge into single geometry
-      const benchGeometry = new THREE.BoxGeometry(2, 1.2, 0.7); // Simplified collision box
+      const benchGeometry = new THREE.BoxGeometry(2, 0.8, 0.5); // Park bench size
       const benchMaterial = new THREE.MeshStandardMaterial({
-        color: 0x5a3825,
-        roughness: 0.85,
-        metalness: 0.0,
+        color: 0x8b6914, // Brighter wood color
+        roughness: 0.8,
+        metalness: 0.1,
+        emissive: 0x1a1005, // Slight glow so visible at night
+        emissiveIntensity: 0.3,
       });
 
       this.benchMeshes = new THREE.InstancedMesh(
@@ -1296,9 +1298,9 @@ export class City {
         benchMatrix.multiply(benchScale);
         this.benchMeshes!.setMatrixAt(i, benchMatrix);
 
-        // Wood color variation
-        const woodShade = 0.3 + Math.random() * 0.1;
-        benchColor.setRGB(woodShade + 0.1, woodShade * 0.7, woodShade * 0.4);
+        // Brighter wood color variation
+        const woodShade = 0.45 + Math.random() * 0.15;
+        benchColor.setRGB(woodShade + 0.15, woodShade * 0.6, woodShade * 0.25);
         this.benchMeshes!.setColorAt(i, benchColor);
       });
 
@@ -1309,11 +1311,11 @@ export class City {
 
     // Create trash bins
     if (this.trashBins.length > 0) {
-      const binGeometry = new THREE.CylinderGeometry(0.3, 0.35, 0.8, 8);
+      const binGeometry = new THREE.CylinderGeometry(0.4, 0.45, 1.0, 12);
       const binMaterial = new THREE.MeshStandardMaterial({
-        color: 0x2a3a2a,
-        roughness: 0.7,
-        metalness: 0.3,
+        color: 0x4a6a4a,
+        roughness: 0.6,
+        metalness: 0.2,
       });
 
       this.trashBinMeshes = new THREE.InstancedMesh(
@@ -1327,12 +1329,12 @@ export class City {
       const binColor = new THREE.Color();
 
       this.trashBins.forEach((bin, i) => {
-        binPos.makeTranslation(bin.position.x, 0.4, bin.position.z);
+        binPos.makeTranslation(bin.position.x, 0.5, bin.position.z);
         this.trashBinMeshes!.setMatrixAt(i, binPos);
 
-        // Green/gray color variation
-        const shade = 0.15 + Math.random() * 0.1;
-        binColor.setRGB(shade, shade + 0.1, shade);
+        // Brighter green color variation (park bins)
+        const shade = 0.25 + Math.random() * 0.1;
+        binColor.setRGB(shade * 0.8, shade + 0.15, shade * 0.8);
         this.trashBinMeshes!.setColorAt(i, binColor);
       });
 
@@ -1523,6 +1525,29 @@ export class City {
     ));
   }
 
+  // Get building at position (for climbing)
+  getBuildingAt(position: THREE.Vector3, radius: number): { height: number; position: THREE.Vector3; width: number; depth: number } | null {
+    for (const building of this.buildings) {
+      const halfW = building.width / 2 + radius;
+      const halfD = building.depth / 2 + radius;
+
+      if (
+        position.x > building.position.x - halfW &&
+        position.x < building.position.x + halfW &&
+        position.z > building.position.z - halfD &&
+        position.z < building.position.z + halfD
+      ) {
+        return {
+          height: building.height,
+          position: building.position.clone(),
+          width: building.width,
+          depth: building.depth,
+        };
+      }
+    }
+    return null;
+  }
+
   // Check collision for player movement
   checkCollision(position: THREE.Vector3, radius: number): THREE.Vector3 | null {
     // Check buildings
@@ -1555,7 +1580,9 @@ export class City {
       }
     }
 
+    // DISABLED: Landmark collision checks (landmarks are visually disabled)
     // Check landmark tower collision (circular)
+    /*
     const towerX = 50;
     const towerZ = 50;
     const towerRadius = 10 + radius;
@@ -1598,6 +1625,7 @@ export class City {
       const pushDist = domeRadius - dist;
       return new THREE.Vector3((dx / dist) * pushDist, 0, (dz / dist) * pushDist);
     }
+    */
 
     return null;
   }
