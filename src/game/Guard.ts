@@ -107,12 +107,12 @@ export class Guard {
       const cone = new THREE.Mesh(coneGeometry, coneMaterial);
 
       // Rotate cone to point along +Z axis (forward)
-      cone.rotation.x = -Math.PI / 2; // Tip points forward
+      cone.rotation.x = Math.PI / 2; // Rotate to horizontal
 
       // Put cone in a group for easier positioning
       const coneGroup = new THREE.Group();
-      // No offset - cone centered at origin, extends forward and back
-      cone.position.z = 0;
+      // After rotation, tip is at -Z, move it to origin
+      cone.position.z = -coneLength / 2;
       coneGroup.add(cone);
 
       // Position group at guard
