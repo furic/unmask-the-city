@@ -149,66 +149,62 @@ export class Water {
     const shape = body.shorelineShape || [];
     const numPoints = shape.length || 12;
 
-    // Create shoreline geometry that covers square corners
-    // We create a ring shape with irregular inner edge (water) and outer edge covering corners
-    const outerRadius = body.radius * 1.3; // Covers the square plane corners
-    const segments = 64;
+    // Create a ground plane with a hole cut out for the water
+    // Use THREE.Shape with a hole path
+    const outerSize = body.radius * 2.0; // Size of the ground cover square
 
-    const positions: number[] = [];
-    const indices: number[] = [];
+    // Outer shape (square that covers the water plane edges)
+    const outerShape = new THREE.Shape();
+    outerShape.moveTo(-outerSize, -outerSize);
+    outerShape.lineTo(outerSize, -outerSize);
+    outerShape.lineTo(outerSize, outerSize);
+    outerShape.lineTo(-outerSize, outerSize);
+    outerShape.lineTo(-outerSize, -outerSize);
 
-    // Create vertices for the shoreline ring
-    for (let i = 0; i <= segments; i++) {
-      const angle = (i / segments) * Math.PI * 2;
+    // Inner hole (organic water shape)
+    const holePath = new THREE.Path();
+    const holeSegments = 64;
+
+    for (let i = 0; i <= holeSegments; i++) {
+      const angle = (i / holeSegments) * Math.PI * 2;
 
       // Get shoreline variation using interpolation between control points
-      const shapeIndex = (i / segments) * numPoints;
+      const shapeIndex = (i / holeSegments) * numPoints;
       const idx1 = Math.floor(shapeIndex) % numPoints;
       const idx2 = (idx1 + 1) % numPoints;
       const t = shapeIndex - Math.floor(shapeIndex);
       const variation = shape[idx1] * (1 - t) + shape[idx2] * t;
 
-      // Inner edge (organic shoreline)
-      const innerR = body.radius * variation;
-      const innerX = Math.cos(angle) * innerR;
-      const innerZ = Math.sin(angle) * innerR;
+      const r = body.radius * variation * 0.95; // Slightly smaller than water edge
+      const x = Math.cos(angle) * r;
+      const z = Math.sin(angle) * r;
 
-      // Outer edge (square-covering)
-      const outerX = Math.cos(angle) * outerRadius;
-      const outerZ = Math.sin(angle) * outerRadius;
-
-      // Inner vertex (at water edge)
-      positions.push(innerX, 0.15, innerZ);
-      // Outer vertex
-      positions.push(outerX, 0.05, outerZ);
+      if (i === 0) {
+        holePath.moveTo(x, z);
+      } else {
+        holePath.lineTo(x, z);
+      }
     }
 
-    // Create faces
-    for (let i = 0; i < segments; i++) {
-      const a = i * 2;
-      const b = i * 2 + 1;
-      const c = (i + 1) * 2;
-      const d = (i + 1) * 2 + 1;
+    outerShape.holes.push(holePath);
 
-      // Two triangles per segment
-      indices.push(a, c, b);
-      indices.push(b, c, d);
-    }
+    // Create geometry from shape
+    const geometry = new THREE.ShapeGeometry(outerShape, 1);
 
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geometry.setIndex(indices);
-    geometry.computeVertexNormals();
+    // Rotate to lay flat (Shape is in XY plane, we need XZ)
+    geometry.rotateX(-Math.PI / 2);
 
-    // Sandy/earthy material
+    // Ground-colored material
     const material = new THREE.MeshStandardMaterial({
-      color: 0x8B7355, // Sandy brown
-      roughness: 0.9,
+      color: 0x3d3d3d, // Match ground color
+      roughness: 0.95,
       metalness: 0.0,
+      side: THREE.DoubleSide,
     });
 
     const shoreline = new THREE.Mesh(geometry, material);
     shoreline.position.copy(body.position);
+    shoreline.position.y = 0.2; // Above water surface
     shoreline.receiveShadow = true;
 
     this.shorelineMeshes.push(shoreline);
@@ -222,140 +218,82 @@ export class Water {
     const riverWidth = body.radius;
     const angle = body.riverAngle || 0;
 
-    // Create banks on both sides of the river
-    [-1, 1].forEach((side) => {
-      const positions: number[] = [];
-      const indices: number[] = [];
-      const segments = numPoints;
+    // Create a ground plane with a hole cut out for the river
+    const outerWidth = riverWidth * 2.5;
+    const outerLength = riverLength * 0.6;
 
-      for (let i = 0; i <= segments; i++) {
-        const t = i / segments;
-        const alongRiver = (t - 0.5) * riverLength;
+    // Outer shape (rectangle covering the river plane)
+    const outerShape = new THREE.Shape();
+    outerShape.moveTo(-outerWidth, -outerLength);
+    outerShape.lineTo(outerWidth, -outerLength);
+    outerShape.lineTo(outerWidth, outerLength);
+    outerShape.lineTo(-outerWidth, outerLength);
+    outerShape.lineTo(-outerWidth, -outerLength);
 
-        // Get bank variation
-        const variation = shape[i % numPoints];
+    // Inner hole (wavy river shape)
+    const holePath = new THREE.Path();
 
-        // Inner edge (water side)
-        const innerOffset = riverWidth * variation * side;
-        // Outer edge (land side)
-        const outerOffset = (riverWidth * 1.4 + 3) * side;
+    // Build the river hole path - go along one side, then back along the other
+    const riverPoints: { x: number; z: number }[] = [];
 
-        // Transform to world coordinates
-        const cosA = Math.cos(angle);
-        const sinA = Math.sin(angle);
+    // One side of river
+    for (let i = 0; i <= numPoints; i++) {
+      const t = i / numPoints;
+      const alongRiver = (t - 0.5) * riverLength * 0.95;
+      const variation = shape[i % numPoints];
+      const offset = riverWidth * variation * 0.9;
 
-        // Inner vertex
-        const innerX = alongRiver * sinA + innerOffset * cosA;
-        const innerZ = alongRiver * cosA - innerOffset * sinA;
-        positions.push(innerX, 0.15, innerZ);
-
-        // Outer vertex
-        const outerX = alongRiver * sinA + outerOffset * cosA;
-        const outerZ = alongRiver * cosA - outerOffset * sinA;
-        positions.push(outerX, 0.05, outerZ);
-      }
-
-      // Create faces
-      for (let i = 0; i < segments; i++) {
-        const a = i * 2;
-        const b = i * 2 + 1;
-        const c = (i + 1) * 2;
-        const d = (i + 1) * 2 + 1;
-
-        if (side > 0) {
-          indices.push(a, b, c);
-          indices.push(b, d, c);
-        } else {
-          indices.push(a, c, b);
-          indices.push(b, c, d);
-        }
-      }
-
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-      geometry.setIndex(indices);
-      geometry.computeVertexNormals();
-
-      const material = new THREE.MeshStandardMaterial({
-        color: 0x8B7355,
-        roughness: 0.9,
-        metalness: 0.0,
+      riverPoints.push({
+        x: offset,
+        z: alongRiver,
       });
+    }
 
-      const bank = new THREE.Mesh(geometry, material);
-      bank.position.copy(body.position);
-      bank.receiveShadow = true;
+    // Other side of river (reverse direction)
+    for (let i = numPoints; i >= 0; i--) {
+      const t = i / numPoints;
+      const alongRiver = (t - 0.5) * riverLength * 0.95;
+      const variation = shape[i % numPoints];
+      const offset = -riverWidth * variation * 0.9;
 
-      this.shorelineMeshes.push(bank);
-      this.scene.add(bank);
+      riverPoints.push({
+        x: offset,
+        z: alongRiver,
+      });
+    }
+
+    // Create hole path
+    riverPoints.forEach((pt, i) => {
+      if (i === 0) {
+        holePath.moveTo(pt.x, pt.z);
+      } else {
+        holePath.lineTo(pt.x, pt.z);
+      }
     });
 
-    // Add end caps for river
-    this.createRiverEndCap(body, -1);
-    this.createRiverEndCap(body, 1);
-  }
+    outerShape.holes.push(holePath);
 
-  private createRiverEndCap(body: WaterBody, end: number): void {
-    const riverLength = body.riverLength || 80;
-    const riverWidth = body.radius;
-    const angle = body.riverAngle || 0;
+    // Create geometry
+    const geometry = new THREE.ShapeGeometry(outerShape, 1);
 
-    // Create a semicircle cap at river ends
-    const segments = 8;
-    const positions: number[] = [];
-    const indices: number[] = [];
-
-    const alongRiver = end * riverLength * 0.5;
-    const cosA = Math.cos(angle);
-    const sinA = Math.sin(angle);
-
-    // Center point
-    const centerX = alongRiver * sinA;
-    const centerZ = alongRiver * cosA;
-    positions.push(centerX, 0.12, centerZ);
-
-    // Arc points
-    for (let i = 0; i <= segments; i++) {
-      const t = i / segments;
-      const arcAngle = (end > 0 ? 0 : Math.PI) + t * Math.PI;
-      const r = riverWidth * 1.2;
-
-      const localX = Math.cos(arcAngle) * r;
-      const localZ = Math.sin(arcAngle) * r * 0.5; // Flatten slightly
-
-      // Transform
-      const worldX = alongRiver * sinA + localX * cosA - localZ * sinA;
-      const worldZ = alongRiver * cosA - localX * sinA - localZ * cosA;
-
-      positions.push(worldX, 0.08, worldZ);
-    }
-
-    // Create triangles from center to arc
-    for (let i = 0; i < segments; i++) {
-      if (end > 0) {
-        indices.push(0, i + 1, i + 2);
-      } else {
-        indices.push(0, i + 2, i + 1);
-      }
-    }
-
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geometry.setIndex(indices);
-    geometry.computeVertexNormals();
+    // Rotate to lay flat and apply river angle
+    geometry.rotateX(-Math.PI / 2);
+    geometry.rotateY(angle);
 
     const material = new THREE.MeshStandardMaterial({
-      color: 0x8B7355,
-      roughness: 0.9,
+      color: 0x3d3d3d,
+      roughness: 0.95,
       metalness: 0.0,
+      side: THREE.DoubleSide,
     });
 
-    const cap = new THREE.Mesh(geometry, material);
-    cap.position.copy(body.position);
-    cap.receiveShadow = true;
+    const bank = new THREE.Mesh(geometry, material);
+    bank.position.copy(body.position);
+    bank.position.y = 0.2;
+    bank.receiveShadow = true;
 
-    this.shorelineMeshes.push(cap);
-    this.scene.add(cap);
+    this.shorelineMeshes.push(bank);
+    this.scene.add(bank);
   }
 
   private createShorelineRocks(body: WaterBody): void {

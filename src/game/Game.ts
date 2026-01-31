@@ -16,7 +16,7 @@ import { HighScoreManager } from './HighScoreManager';
 import { GlobalLeaderboardManager } from './GlobalLeaderboardManager';
 import { Rain } from './Rain';
 import { Water } from './Water';
-import { Guard } from './Guard';
+// import { Guard } from './Guard'; // DISABLED
 import { WinSequence } from './WinSequence';
 
 // Difficulty settings interface
@@ -95,9 +95,9 @@ export class Game {
   private weatherTimer = 0;
   private isRaining = false;
 
-  // Water and Guards
+  // Water
   private water: Water;
-  private guards: Guard;
+  // private guards: Guard; // DISABLED
 
   // Win sequence
   private winSequence!: WinSequence;
@@ -170,9 +170,9 @@ export class Game {
     // Rain
     this.rain = new Rain(this.scene, this.settings.citySize, 2000);
 
-    // Guards
-    const guardCount = this.difficulty === 'easy' ? 3 : this.difficulty === 'hard' ? 7 : 5;
-    this.guards = new Guard(this.scene, this.settings.citySize, guardCount);
+    // Guards (DISABLED - removed due to bugs)
+    // const guardCount = this.difficulty === 'easy' ? 3 : this.difficulty === 'hard' ? 7 : 5;
+    // this.guards = new Guard(this.scene, this.settings.citySize, guardCount);
 
     // Audio
     this.audioManager = new AudioManager();
@@ -452,12 +452,12 @@ export class Game {
     const inWater = this.water.isInWater(playerPos);
     this.player.setInWater(inWater);
 
-    // Update guards
-    this.guards.update(delta, playerPos);
-    const guardAlert = this.guards.getAlertLevel();
-    if (guardAlert > 0.3) {
-      this.player.drainStamina(guardAlert * 20 * delta);
-    }
+    // Update guards (DISABLED)
+    // this.guards.update(delta, playerPos);
+    // const guardAlert = this.guards.getAlertLevel();
+    // if (guardAlert > 0.3) {
+    //   this.player.drainStamina(guardAlert * 20 * delta);
+    // }
 
     // Update weather (rain)
     this.weatherTimer += delta;

@@ -4,6 +4,12 @@ import { GlobalLeaderboardManager } from './game/GlobalLeaderboardManager';
 
 // Difficulty presets
 const DIFFICULTIES: Record<string, DifficultySettings> = {
+  dev: {
+    citySize: 200,
+    fragmentCount: 1,
+    buildingDensity: 0.3,
+    fogClearRadius: 50,
+  },
   easy: {
     citySize: 300,
     fragmentCount: 5,
@@ -23,6 +29,9 @@ const DIFFICULTIES: Record<string, DifficultySettings> = {
     fogClearRadius: 18,
   },
 };
+
+// Check if running on localhost
+const IS_LOCALHOST = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
 // Function to update leaderboard display for a specific difficulty
 async function updateLeaderboard(difficulty: string = 'normal') {
@@ -109,6 +118,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let selectedDifficulty = 'normal';
   let game: Game | null = null;
+
+  // Show dev difficulty button on localhost only
+  if (IS_LOCALHOST) {
+    const devBtn = document.getElementById('dev-btn');
+    if (devBtn) {
+      devBtn.classList.remove('hidden');
+    }
+  }
 
   // Load and display leaderboard for default difficulty
   updateLeaderboard(selectedDifficulty);
